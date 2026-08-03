@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STRADCONNECT | Verification Gateway</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .auth-viewport {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(rgba(40, 93, 146, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40, 93, 146, 0.05) 1px, transparent 1px),
+        radial-gradient(120% 120% at 50% 0%, #fbfdfc 0%, #eef2ef 100%);
+      background-size: 24px 24px, 24px 24px, 100% 100%;
+      padding: 24px;
+      position: relative;
+    }
+    .auth-card {
+      background: #ffffff;
+      border: 1px solid #d8dedb;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 1px 3px rgba(23, 32, 31, 0.05), 0 18px 44px rgba(23, 32, 31, 0.12);
+      border-top: 4px solid #17684f;
+      position: relative;
+    }
+    .auth-card::after {
+      content: "STRADCONNECT · DOCUMENT AUTHORITY GATEWAY";
+      position: absolute;
+      top: 0;
+      right: 16px;
+      transform: translateY(-50%);
+      background: #12231e;
+      color: #efb75a;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+    .auth-toggle-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #eef3f0;
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    .auth-tab-btn {
+      padding: 8px;
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #66736f;
+      cursor: pointer;
+      text-align: center;
+    }
+    .auth-tab-btn.active {
+      background: #ffffff;
+      color: #17684f;
+      box-shadow: 0 1px 2px rgba(23, 32, 31, 0.1);
+    }
+    .auth-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #3d4a45;
+      margin-bottom: 6px;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d3dbd7;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+      outline: none;
+      background: #ffffff;
+      color: #17211f;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .auth-input:focus {
+      border-color: #17684f;
+      box-shadow: 0 0 0 3px rgba(23, 104, 79, 0.12);
+    }
+    .auth-input:disabled {
+      background: #f1f5f3;
+      color: #94a3b8;
+    }
+    .password-wrap {
+      position: relative;
+      display: block;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+    .password-wrap .auth-input {
+      margin-top: 0;
+      margin-bottom: 0;
+      padding-right: 40px;
+    }
+    .pass-eye-btn {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 4px;
+      color: #66736f;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pass-eye-btn:hover {
+      color: #17684f;
+    }
+    .pass-eye-btn svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    .btn-auth-submit {
+      width: 100%;
+      padding: 12px;
+      background: #17684f;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.12s ease;
+      box-shadow: 0 4px 12px rgba(23, 104, 79, 0.22);
+    }
+    .btn-auth-submit:hover {
+      background: #0f4e3a;
+    }
+    .btn-auth-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-ghost {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: #17684f;
+      font-weight: 600;
+      font-size: 14px;
+      border: 1px solid #d3dbd7;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-ghost:hover {
+      background: #f0f5f3;
+      border-color: #17684f;
+    }
+    .forgot-link-box {
+      text-align: right;
+      margin-top: -10px;
+      margin-bottom: 16px;
+    }
+    .forgot-link-box a {
+      font-size: 12px;
+      color: #285d92;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .forgot-link-box a:hover {
+      text-decoration: underline;
+    }
+    .success-badge {
+      text-align: center;
+      padding: 14px;
+      background: #f0fff4;
+      border: 1px solid #c6f6d5;
+      border-radius: 8px;
+      color: #22543d;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .auth-brand-strip {
+      text-align: center;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px dashed #d8dedb;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: #66736f;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-viewport">
+    <div class="auth-card">
+
+      <!-- Branding Logo -->
+      <div style="display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 24px;">
+        <div style="background: #17684f; color: #fff; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; border: 1px solid rgba(239,183,90,0.5); box-shadow: 0 0 0 3px rgba(239,183,90,0.12);">S</div>
+        <strong style="font-size: 16px; letter-spacing: -0.02em; color: #12231e;">STRADCONNECT</strong>
+      </div>
+
+      <!-- Mode Selection Tabs -->
+      <div class="auth-toggle-tabs" id="authTabsContainer">
+        <button type="button" id="tabLogin" class="auth-tab-btn active">Sign In</button>
+        <button type="button" id="tabSignup" class="auth-tab-btn">Register</button>
+      </div>
+
+      <h2 id="authTitle" style="font-size: 20px; font-weight: 700; margin: 0 0 6px 0; color: #17684f;">Welcome Back</h2>
+      <p id="authSubtitle" style="font-size: 13px; color: #66736f; margin: 0 0 20px 0;">Access your isolated engineering workspace matrix.</p>
+
+      <form id="authForm">
+
+        <!-- ===== REGISTRATION FIELDS ===== -->
+        <div id="registerFields" class="hidden">
+          <label class="auth-label">
+            Full Professional Name
+            <input type="text" id="regName" class="auth-input" placeholder="Type Your Name Here..." />
+          </label>
+          <label class="auth-label">
+            Company / Consultancy Name
+            <input type="text" id="regCompany" class="auth-input" placeholder="Company Name..." />
+          </label>
+          <label class="auth-label">
+            Professional Email Address
+            <input type="email" id="regEmail" class="auth-input" placeholder="engineer@firm.com" />
+          </label>
+
+          <!-- Step 1: Send OTP -->
+          <div id="regStep1">
+            <button type="button" id="btnSendOtp" class="btn-auth-submit">Verify Email</button>
+          </div>
+
+          <!-- Step 2: Enter OTP -->
+          <div id="regStep2" class="hidden">
+            <label class="auth-label">
+              Enter the code sent to your email
+              <input type="text" id="regOtpInput" class="auth-input" placeholder="00000000" maxlength="8" inputmode="numeric" />
+            </label>
+            <button type="button" id="btnVerifyOtp" class="btn-auth-submit">Verify Code</button>
+            <button type="button" id="btnResendOtp" class="btn-ghost">Resend Code</button>
+            <button type="button" id="btnChangeEmail" class="btn-ghost">Use a different email</button>
+          </div>
+
+          <!-- Step 3: Set Password -->
+          <div id="regStep3" class="hidden">
+            <div class="success-badge">&#9989; Email Verified</div>
+            <label class="auth-label">
+              Set Account Password
+              <span class="password-wrap">
+                <input type="password" id="regPassword" class="auth-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" />
+                <button type="button" class="pass-eye-btn" onclick="togglePasswordVisibility(this)" title="Show password">
+                  <svg class="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-hide" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </span>
+            </label>
+            <label class="auth-label">
+              Confirm Password
+              <span class="password-wrap">
+                <input type="password" id="regConfirmPassword" class="auth-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" />
+                <button type="button" class="pass-eye-btn" onclick="togglePasswordVisibility(this)" title="Show password">
+                  <svg class="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-hide" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </span>
+            </label>
+            <button type="button" id="btnCreateAccount" class="btn-auth-submit">Create Account</button>
+          </div>
+        </div>
+
+        <!-- ===== LOGIN FIELDS ===== -->
+        <div id="loginFields">
+          <label class="auth-label">
+            Professional Email Address
+            <input type="email" id="authEmail" class="auth-input" placeholder="engineer@firm.com" required />
+          </label>
+          <div id="passwordFieldWrapper">
+            <label class="auth-label">
+              Account Security Password
+              <span class="password-wrap">
+                <input type="password" id="authPassword" class="auth-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" />
+                <button type="button" class="pass-eye-btn" onclick="togglePasswordVisibility(this)" title="Show password">
+                  <svg class="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-hide" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </span>
+            </label>
+            <div class="forgot-link-box" id="forgotLinkWrapper">
+              <a href="#" id="btnTriggerForgot">Forgot Password?</a>
+            </div>
+          </div>
+
+          <!-- Forgot Step 1: Send OTP -->
+          <div id="forgotOtpSection" class="hidden">
+            <button type="button" id="btnSendForgotOtp" class="btn-auth-submit">Send Recovery Code</button>
+
+            <div id="forgotOtpEntry" class="hidden">
+              <label class="auth-label">
+                Enter the code sent to your email
+                <input type="text" id="forgotOtpInput" class="auth-input" placeholder="00000000" maxlength="8" inputmode="numeric" />
+              </label>
+              <button type="button" id="btnVerifyForgotOtp" class="btn-auth-submit">Verify Code</button>
+              <button type="button" id="btnResendForgotOtp" class="btn-ghost">Resend Code</button>
+              <button type="button" id="btnCancelForgot" class="btn-ghost">Cancel & return to Sign In</button>
+            </div>
+          </div>
+
+          <!-- Forgot Step 2: Set New Password -->
+          <div id="forgotPasswordSection" class="hidden">
+            <div class="success-badge">&#9989; Email Verified</div>
+            <label class="auth-label">
+              Set New Password
+              <span class="password-wrap">
+                <input type="password" id="forgotNewPass" class="auth-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" />
+                <button type="button" class="pass-eye-btn" onclick="togglePasswordVisibility(this)" title="Show password">
+                  <svg class="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-hide" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </span>
+            </label>
+            <label class="auth-label">
+              Confirm New Password
+              <span class="password-wrap">
+                <input type="password" id="forgotConfirmPass" class="auth-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" />
+                <button type="button" class="pass-eye-btn" onclick="togglePasswordVisibility(this)" title="Show password">
+                  <svg class="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-hide" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </span>
+            </label>
+            <button type="button" id="btnUpdateForgotPassword" class="btn-auth-submit">Update Password</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btnAuthSubmit" class="btn-auth-submit">Sign In to Dashboard</button>
+      </form>
+
+      <div style="text-align: center; margin-top: 16px;">
+        <a href="index.html" id="backLink" style="font-size: 13px; color: #285d92; text-decoration: none;">&larr; Back to Corporate Site</a>
+      </div>
+
+      <div class="auth-brand-strip">Engineering Document Control · Secure Coordination Matrix</div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
+var SUPABASE_ANON_KEY = "sb_publishable_GS-TjYrkZ88-aL01RpaUAg_m5z-RlJI";
+var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+var tabLogin = document.getElementById("tabLogin");
+var tabSignup = document.getElementById("tabSignup");
+var authTitle = document.getElementById("authTitle");
+var authSubtitle = document.getElementById("authSubtitle");
+var btnAuthSubmit = document.getElementById("btnAuthSubmit");
+var authForm = document.getElementById("authForm");
+var forgotLinkWrapper = document.getElementById("forgotLinkWrapper");
+var btnTriggerForgot = document.getElementById("btnTriggerForgot");
+var backLink = document.getElementById("backLink");
+
+var registerFields = document.getElementById("registerFields");
+var loginFields = document.getElementById("loginFields");
+var passwordFieldWrapper = document.getElementById("passwordFieldWrapper");
+var authTabsContainer = document.getElementById("authTabsContainer");
+
+var regName = document.getElementById("regName");
+var regCompany = document.getElementById("regCompany");
+var regEmail = document.getElementById("regEmail");
+var regStep1 = document.getElementById("regStep1");
+var regStep2 = document.getElementById("regStep2");
+var regStep3 = document.getElementById("regStep3");
+var regOtpInput = document.getElementById("regOtpInput");
+var regPassword = document.getElementById("regPassword");
+var regConfirmPassword = document.getElementById("regConfirmPassword");
+var btnSendOtp = document.getElementById("btnSendOtp");
+var btnVerifyOtp = document.getElementById("btnVerifyOtp");
+var btnResendOtp = document.getElementById("btnResendOtp");
+var btnChangeEmail = document.getElementById("btnChangeEmail");
+var btnCreateAccount = document.getElementById("btnCreateAccount");
+
+var forgotOtpSection = document.getElementById("forgotOtpSection");
+var forgotOtpEntry = document.getElementById("forgotOtpEntry");
+var forgotPasswordSection = document.getElementById("forgotPasswordSection");
+var forgotOtpInput = document.getElementById("forgotOtpInput");
+var forgotNewPass = document.getElementById("forgotNewPass");
+var forgotConfirmPass = document.getElementById("forgotConfirmPass");
+var btnSendForgotOtp = document.getElementById("btnSendForgotOtp");
+var btnVerifyForgotOtp = document.getElementById("btnVerifyForgotOtp");
+var btnResendForgotOtp = document.getElementById("btnResendForgotOtp");
+var btnCancelForgot = document.getElementById("btnCancelForgot");
+var btnUpdateForgotPassword = document.getElementById("btnUpdateForgotPassword");
+
+var currentMode = "login";
+var verifiedEmail = "";
+
+function togglePasswordVisibility(btn) {
+  var wrap = btn.closest(".password-wrap");
+  if (!wrap) return;
+  var input = wrap.querySelector("input");
+  if (!input) return;
+  var isPassword = input.type === "password";
+  input.type = isPassword ? "text" : "password";
+  var showIcon = btn.querySelector(".eye-show");
+  var hideIcon = btn.querySelector(".eye-hide");
+  if (showIcon) showIcon.style.display = isPassword ? "none" : "";
+  if (hideIcon) hideIcon.style.display = isPassword ? "" : "none";
+}
+
+function resetForgotState() {
+  forgotOtpSection.classList.remove("hidden");
+  forgotOtpEntry.classList.add("hidden");
+  forgotPasswordSection.classList.add("hidden");
+  forgotOtpInput.value = "";
+  forgotNewPass.value = "";
+  forgotConfirmPass.value = "";
+  authEmail.disabled = false;
+  btnSendForgotOtp.disabled = false;
+  btnSendForgotOtp.textContent = "Send Recovery Code";
+  btnSendForgotOtp.classList.remove("hidden");
+  btnVerifyForgotOtp.disabled = false;
+  btnVerifyForgotOtp.textContent = "Verify Code";
+  btnUpdateForgotPassword.disabled = false;
+  btnUpdateForgotPassword.textContent = "Update Password";
+}
+
+function resetRegState() {
+  regStep1.classList.remove("hidden");
+  regStep2.classList.add("hidden");
+  regStep3.classList.add("hidden");
+  regOtpInput.value = "";
+  regPassword.value = "";
+  regConfirmPassword.value = "";
+  regEmail.disabled = false;
+  btnSendOtp.disabled = false;
+  btnSendOtp.textContent = "Verify Email";
+  btnVerifyOtp.disabled = false;
+  btnVerifyOtp.textContent = "Verify Code";
+  btnCreateAccount.disabled = false;
+  btnCreateAccount.textContent = "Create Account";
+  verifiedEmail = "";
+}
+
+function setMode(mode) {
+  currentMode = mode;
+
+  if (mode === "signup") {
+    registerFields.classList.remove("hidden");
+    loginFields.classList.add("hidden");
+    btnAuthSubmit.classList.add("hidden");
+    tabSignup.classList.add("active");
+    tabLogin.classList.remove("active");
+    authTitle.textContent = "Create Master Account";
+    authSubtitle.textContent = "Deploy a secure coordination footprint on STRADCONNECT.";
+    backLink.innerHTML = "&larr; Back to Corporate Site";
+    authTabsContainer.style.display = "grid";
+    resetRegState();
+
+  } else if (mode === "login") {
+    registerFields.classList.add("hidden");
+    loginFields.classList.remove("hidden");
+    btnAuthSubmit.classList.remove("hidden");
+    passwordFieldWrapper.style.display = "block";
+    forgotLinkWrapper.style.display = "block";
+    tabLogin.classList.add("active");
+    tabSignup.classList.remove("active");
+    authTitle.textContent = "Welcome Back";
+    authSubtitle.textContent = "Access your isolated engineering workspace matrix.";
+    btnAuthSubmit.textContent = "Sign In to Dashboard";
+    backLink.innerHTML = "&larr; Back to Corporate Site";
+    authTabsContainer.style.display = "grid";
+    resetForgotState();
+    forgotOtpSection.classList.add("hidden");
+    authEmail.disabled = false;
+
+  } else if (mode === "forgot") {
+    registerFields.classList.add("hidden");
+    loginFields.classList.remove("hidden");
+    btnAuthSubmit.classList.add("hidden");
+    passwordFieldWrapper.style.display = "none";
+    forgotLinkWrapper.style.display = "none";
+    authTabsContainer.style.display = "none";
+    authTitle.textContent = "Reset Your Password";
+    authSubtitle.textContent = "Enter your email to receive a recovery code.";
+    backLink.innerHTML = "&larr; Cancel and Return to Sign In";
+    resetForgotState();
+  }
+}
+
+tabLogin.addEventListener("click", function() { setMode("login"); });
+tabSignup.addEventListener("click", function() { setMode("signup"); });
+btnTriggerForgot.addEventListener("click", function(e) { e.preventDefault(); setMode("forgot"); });
+
+backLink.addEventListener("click", function(e) {
+  if (currentMode === "forgot") {
+    e.preventDefault();
+    setMode("login");
+  }
+});
+
+// ===== STEP 1: SEND OTP =====
+btnSendOtp.addEventListener("click", function() {
+  if (!supabase) return;
+
+  var name = regName.value.trim();
+  var company = regCompany.value.trim();
+  var email = regEmail.value.trim();
+
+  if (!name || !company || !email) { alert("All fields are required."); return; }
+
+  btnSendOtp.disabled = true;
+  btnSendOtp.textContent = "Checking...";
+
+  // Check if email already exists
+  supabase.from("profiles").select("id").eq("email", email).maybeSingle()
+    .then(function(checkRes) {
+      if (checkRes.error) throw checkRes.error;
+
+      if (checkRes.data) {
+        alert("This email is already registered. Please sign in instead.");
+        btnSendOtp.disabled = false;
+        btnSendOtp.textContent = "Verify Email";
+        setMode("login");
+        document.getElementById("authEmail").value = email;
+        return null;
+      }
+
+      btnSendOtp.textContent = "Sending code...";
+
+      return supabase.auth.signInWithOtp({ email: email });
+    })
+    .then(function(result) {
+      if (!result) return;
+      if (result.error) throw result.error;
+
+      regEmail.disabled = true;
+      regStep1.classList.add("hidden");
+      regStep2.classList.remove("hidden");
+      btnSendOtp.textContent = "Code Sent";
+      startResendCooldown();
+    })
+    .catch(function(err) {
+      alert("Error: " + err.message);
+      btnSendOtp.disabled = false;
+      btnSendOtp.textContent = "Verify Email";
+    });
+});
+
+var resendTimer = null;
+var resendCooldownSeconds = 300;
+
+function startResendCooldown() {
+  startResendCooldownFor(btnResendOtp);
+}
+
+function startResendCooldownFor(button) {
+  if (resendTimer) clearInterval(resendTimer);
+
+  button.disabled = true;
+  var remaining = resendCooldownSeconds;
+
+  function tick() {
+    var min = Math.floor(remaining / 60);
+    var sec = remaining % 60;
+    button.textContent = "Resend in " + min + ":" + (sec < 10 ? "0" : "") + sec;
+    remaining--;
+
+    if (remaining < 0) {
+      clearInterval(resendTimer);
+      resendTimer = null;
+      button.disabled = false;
+      button.textContent = "Resend Code";
+    }
+  }
+
+  tick();
+  resendTimer = setInterval(tick, 1000);
+}
+
+btnResendOtp.addEventListener("click", function() {
+  if (!supabase) return;
+  var email = regEmail.value.trim();
+  if (!email) return;
+
+  btnResendOtp.disabled = true;
+  btnResendOtp.textContent = "Sending...";
+
+  supabase.auth.signInWithOtp({ email: email })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      startResendCooldown();
+    })
+    .catch(function(err) {
+      alert("Failed to resend: " + err.message);
+      btnResendOtp.disabled = false;
+      btnResendOtp.textContent = "Resend Code";
+    });
+});
+
+btnChangeEmail.addEventListener("click", function() {
+  resetRegState();
+});
+
+// ===== STEP 2: VERIFY OTP =====
+btnVerifyOtp.addEventListener("click", function() {
+  if (!supabase) return;
+
+  var email = regEmail.value.trim();
+  var token = regOtpInput.value.trim();
+
+  if (!token) { alert("Please enter the code sent to your email."); return; }
+
+  btnVerifyOtp.disabled = true;
+  btnVerifyOtp.textContent = "Verifying...";
+
+  supabase.auth.verifyOtp({ email: email, token: token, type: "email" })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      verifiedEmail = email;
+      regStep2.classList.add("hidden");
+      regStep3.classList.remove("hidden");
+      btnVerifyOtp.textContent = "Verified";
+    })
+    .catch(function(err) {
+      alert("Verification failed: " + err.message);
+      btnVerifyOtp.disabled = false;
+      btnVerifyOtp.textContent = "Verify Code";
+    });
+});
+
+// ===== STEP 3: CREATE ACCOUNT =====
+btnCreateAccount.addEventListener("click", function() {
+  if (!supabase) return;
+
+  var name = regName.value.trim();
+  var company = regCompany.value.trim();
+  var email = regEmail.value.trim();
+  var password = regPassword.value;
+  var confirmPassword = regConfirmPassword.value;
+
+  if (!password || password.length < 6) { alert("Password must be at least 6 characters."); return; }
+  if (password !== confirmPassword) { alert("Passwords do not match."); return; }
+
+  btnCreateAccount.disabled = true;
+  btnCreateAccount.textContent = "Creating Account...";
+
+  // Update password for the OTP-verified user
+  supabase.auth.updateUser({ password: password })
+    .then(function(updateRes) {
+      if (updateRes.error) throw updateRes.error;
+
+      return supabase.from("profiles").insert([{
+        id: updateRes.data.user.id,
+        email: email,
+        full_name: name,
+        company_name: company
+      }]);
+    })
+    .then(function(profileRes) {
+      if (profileRes && profileRes.error) throw profileRes.error;
+      window.location.href = "dashboard.html";
+    })
+    .catch(function(err) {
+      alert("Account creation failed: " + err.message);
+      btnCreateAccount.disabled = false;
+      btnCreateAccount.textContent = "Create Account";
+    });
+});
+
+// ===== LOGIN LOGIC =====
+authForm.addEventListener("submit", function(e) {
+  e.preventDefault();
+  if (!supabase) return;
+
+  var email = document.getElementById("authEmail").value.trim();
+  var password = document.getElementById("authPassword").value;
+
+  btnAuthSubmit.disabled = true;
+  btnAuthSubmit.textContent = "Processing...";
+
+  supabase.auth.signInWithPassword({ email: email, password: password })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      window.location.href = "dashboard.html";
+    })
+    .catch(function(err) {
+      alert("Sign In Failed: " + err.message);
+    })
+    .then(function() {
+      btnAuthSubmit.disabled = false;
+      btnAuthSubmit.textContent = "Sign In to Dashboard";
+    });
+});
+
+// ===== FORGOT PASSWORD OTP FLOW =====
+btnSendForgotOtp.addEventListener("click", function() {
+  if (!supabase) return;
+
+  var email = authEmail.value.trim();
+  if (!email) { alert("Please enter your email address."); return; }
+
+  btnSendForgotOtp.disabled = true;
+  btnSendForgotOtp.textContent = "Checking...";
+
+  // Verify email is registered
+  supabase.from("profiles").select("id").eq("email", email).maybeSingle()
+    .then(function(checkRes) {
+      if (checkRes.error) throw checkRes.error;
+
+      if (!checkRes.data) {
+        alert("No account found with this email. Please register first.");
+        btnSendForgotOtp.disabled = false;
+        btnSendForgotOtp.textContent = "Send Recovery Code";
+        return null;
+      }
+
+      btnSendForgotOtp.textContent = "Sending code...";
+
+      return supabase.auth.signInWithOtp({ email: email });
+    })
+    .then(function(result) {
+      if (!result) return;
+      if (result.error) throw result.error;
+
+      authEmail.disabled = true;
+      btnSendForgotOtp.classList.add("hidden");
+      forgotOtpEntry.classList.remove("hidden");
+      startResendCooldownFor(btnResendForgotOtp);
+    })
+    .catch(function(err) {
+      alert("Error: " + err.message);
+      btnSendForgotOtp.disabled = false;
+      btnSendForgotOtp.textContent = "Send Recovery Code";
+    });
+});
+
+btnVerifyForgotOtp.addEventListener("click", function() {
+  if (!supabase) return;
+
+  var email = authEmail.value.trim();
+  var token = forgotOtpInput.value.trim();
+
+  if (!token) { alert("Please enter the code sent to your email."); return; }
+
+  btnVerifyForgotOtp.disabled = true;
+  btnVerifyForgotOtp.textContent = "Verifying...";
+
+  supabase.auth.verifyOtp({ email: email, token: token, type: "email" })
+    .then(function(res) {
+      if (res.error) throw res.error;
+
+      forgotOtpEntry.classList.add("hidden");
+      forgotPasswordSection.classList.remove("hidden");
+      btnVerifyForgotOtp.textContent = "Verified";
+    })
+    .catch(function(err) {
+      alert("Verification failed: " + err.message);
+      btnVerifyForgotOtp.disabled = false;
+      btnVerifyForgotOtp.textContent = "Verify Code";
+    });
+});
+
+btnResendForgotOtp.addEventListener("click", function() {
+  if (!supabase) return;
+  var email = authEmail.value.trim();
+  if (!email) return;
+
+  btnResendForgotOtp.disabled = true;
+  btnResendForgotOtp.textContent = "Sending...";
+
+  supabase.auth.signInWithOtp({ email: email })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      startResendCooldownFor(btnResendForgotOtp);
+    })
+    .catch(function(err) {
+      alert("Failed to resend: " + err.message);
+      btnResendForgotOtp.disabled = false;
+      btnResendForgotOtp.textContent = "Resend Code";
+    });
+});
+
+btnCancelForgot.addEventListener("click", function() {
+  setMode("login");
+});
+
+btnUpdateForgotPassword.addEventListener("click", function() {
+  if (!supabase) return;
+
+  var newPass = forgotNewPass.value;
+  var confirmPass = forgotConfirmPass.value;
+
+  if (!newPass || newPass.length < 6) { alert("Password must be at least 6 characters."); return; }
+  if (newPass !== confirmPass) { alert("Passwords do not match."); return; }
+
+  btnUpdateForgotPassword.disabled = true;
+  btnUpdateForgotPassword.textContent = "Updating...";
+
+  supabase.auth.updateUser({ password: newPass })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      alert("Password updated successfully.");
+      window.location.href = "dashboard.html";
+    })
+    .catch(function(err) {
+      alert("Failed to update password: " + err.message);
+      btnUpdateForgotPassword.disabled = false;
+      btnUpdateForgotPassword.textContent = "Update Password";
+    });
+});
+  </script>
+</body>
+</html>
