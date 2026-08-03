@@ -60,6 +60,7 @@ select {
   background: var(--gold);
   color: #12231e;
   font-weight: 800;
+  font-size: 15px;
 }
 
 .brand small {

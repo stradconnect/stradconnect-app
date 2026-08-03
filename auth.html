@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#17684f" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>STRADCONNECT | Verification Gateway</title>
   <style>
     * {
@@ -221,7 +225,7 @@
 
       <!-- Branding Logo -->
       <div style="display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 24px;">
-        <div style="background: #17684f; color: #fff; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; border: 1px solid rgba(239,183,90,0.5); box-shadow: 0 0 0 3px rgba(239,183,90,0.12);">S</div>
+        <div style="background: #17684f; color: #fff; width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; border: 1px solid rgba(239,183,90,0.5); box-shadow: 0 0 0 3px rgba(239,183,90,0.12);">SC</div>
         <strong style="font-size: 16px; letter-spacing: -0.02em; color: #12231e;">STRADCONNECT</strong>
       </div>
 
@@ -837,5 +841,13 @@ btnUpdateForgotPassword.addEventListener("click", function() {
     });
 });
   </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
 </body>
 </html>
