@@ -1044,6 +1044,8 @@ select {
 
   .sidebar-brand-title {
     font-size: 14px;
+    font-family: 'Michroma', sans-serif;
+    letter-spacing: 0.04em;
   }
 
   .nav {
