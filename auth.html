@@ -381,6 +381,14 @@ var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
 var SUPABASE_ANON_KEY = "sb_publishable_GS-TjYrkZ88-aL01RpaUAg_m5z-RlJI";
 var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+if (supabase) {
+  supabase.auth.getUser().then(function(res) {
+    if (!res.error && res.data && res.data.user) {
+      window.location.href = "dashboard.html";
+    }
+  });
+}
+
 var tabLogin = document.getElementById("tabLogin");
 var tabSignup = document.getElementById("tabSignup");
 var authTitle = document.getElementById("authTitle");

@@ -347,7 +347,7 @@
       </nav>
 
       <div class="sc-header-actions">
-        <a href="auth.html?mode=login" class="btn-nav-signin">Sign In</a>
+        <a href="auth.html?mode=login" class="btn-nav-signin" data-session-btn>Sign In</a>
       </div>
     </header>
 
@@ -359,8 +359,8 @@
           <p>Organize your drawings and keep every revision under your control with <strong>STRAD CONNECT</strong>. Designed specifically for the construction industry, STRAD CONNECT provides a secure, centralized workspace where architects, structural consultants, MEP engineers, contractors, PMCs, and other project stakeholders can store, share, and manage construction documents efficiently. Every drawing revision is automatically tracked, ensuring teams always have access to the latest approved version while maintaining a complete history of previous revisions. With role-based access, structured project folders, and seamless collaboration, STRAD CONNECT eliminates confusion, reduces coordination errors, and keeps your entire project team connected through a single source of truth.</p>
 
           <div class="cta-group">
-            <a href="auth.html?mode=signup" class="btn-primary">Deploy Your First Project</a>
-            <a href="auth.html?mode=login" class="btn-secondary">Access Workspace</a>
+            <a href="auth.html?mode=signup" class="btn-primary" data-session-btn>Deploy Your First Project</a>
+            <a href="auth.html?mode=login" class="btn-secondary" data-session-btn>Access Workspace</a>
           </div>
         </div>
       </div>
@@ -468,7 +468,7 @@
         <strong>STRADCONNECT</strong> &nbsp;·&nbsp; CONNECT.COORDINATE.BUILD
       </div>
       <div class="foot-links">
-        <a href="auth.html?mode=login">Sign In</a>
+        <a href="auth.html?mode=login" data-session-btn>Sign In</a>
         <a href="auth.html?mode=signup">Register</a>
         <a href="#features">Platform</a>
       </div>
@@ -483,6 +483,19 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
+
+  (function () {
+    var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
+    var SUPABASE_ANON_KEY = "sb_publishable_GS-TjYrkZ88-aL01RpaUAg_m5z-RlJI";
+    var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    if (!supabase) return;
+    supabase.auth.getUser().then(function (res) {
+      if (res.error || !res.data || !res.data.user) return;
+      document.querySelectorAll("[data-session-btn]").forEach(function (a) {
+        a.href = "dashboard.html";
+      });
+    });
+  })();
 </script>
 </body>
 </html>
