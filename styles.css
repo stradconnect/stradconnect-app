@@ -51,46 +51,22 @@ select {
   margin-bottom: 28px;
 }
 
-.brand-link {
-  text-decoration: none;
-  color: inherit;
-}
-
-.brand-link:visited,
-.brand-link:hover,
-.brand-link:active {
-  color: inherit;
-  text-decoration: none;
-}
-
 .brand-mark {
   display: grid;
-  width: 46px;
+  width: 42px;
   height: 42px;
   place-items: center;
   border-radius: 8px;
   background: var(--gold);
   color: #12231e;
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -1px;
+  font-weight: 800;
+  font-size: 15px;
 }
 
 .brand small {
   display: block;
   margin-top: 3px;
   color: #bed0c9;
-}
-
-.sidebar-brand-title {
-  font-family: "Michroma", "Segoe UI", Arial, sans-serif;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  color: #ffffff;
-  display: block;
-  line-height: 1.1;
-  white-space: nowrap;
 }
 
 .nav {
@@ -1057,7 +1033,7 @@ select {
   }
 
   .brand-mark {
-    width: 36px;
+    width: 32px;
     height: 32px;
     font-size: 14px;
   }
@@ -1067,7 +1043,7 @@ select {
   }
 
   .sidebar-brand-title {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .nav {
