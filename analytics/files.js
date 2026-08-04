@@ -5,26 +5,30 @@
   function renderKpis(data) {
     var drawings = data.drawings || [];
     var cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() - 30);
-    var recent30 = 0, lastMonth = null;
+    var recent30 = 0;
     drawings.forEach(function (d) {
       var t = new Date(d.created_at);
       if (t >= cutoff30) recent30++;
-      if (!lastMonth || t > new Date(lastMonth)) lastMonth = d.created_at;
     });
     var discs = {};
     drawings.forEach(function (d) { discs[S.cleanDiscipline(d.uploaded_by)] = true; });
-    var lastActivity = 0;
-    drawings.forEach(function (d) { var t = new Date(d.created_at); if (t > lastActivity) lastActivity = t; });
     var boxes = [
       { label: "Total Files", value: drawings.length, sub: "all-time uploads" },
       { label: "Uploaded (30 days)", value: recent30, sub: "recent" },
-      { label: "Disciplines", value: Object.keys(discs).length, sub: "distinct" },
-      { label: "Last Upload", value: S.timeAgo(lastActivity), sub: S.fmtDateTime(lastActivity) }
+      { label: "Disciplines", value: Object.keys(discs).length, sub: "distinct" }
     ];
     document.getElementById("fileKpis").innerHTML = boxes.map(function (b) {
       return '<div class="info-box"><div class="ib-label">' + S.esc(b.label) + '</div>' +
         '<div class="ib-value">' + S.esc(b.value) + "<small> " + S.esc(b.sub) + "</small></div></div>";
     }).join("");
+    S.loadStorage(true, S.buildValidPaths(data.drawings)).then(function (st) {
+      var lastBox = document.createElement("div");
+      lastBox.className = "info-box";
+      lastBox.style.borderLeftColor = "var(--gold)";
+      lastBox.innerHTML = '<div class="ib-label">Storage Used</div>' +
+        '<div class="ib-value">' + S.esc(S.fmtBytes(st.totalBytes)) + "<small> DB-tracked files</small></div>";
+      document.getElementById("fileKpis").appendChild(lastBox);
+    }).catch(function () {});
   }
 
   function renderDiscChart(data) {
@@ -81,50 +85,10 @@
     });
   }
 
-  function renderStorage(data) {
-    S.loadStorage(true).then(function (st) {
-      if (st.error) {
-        var el = document.getElementById("chartStorageByProject");
-        if (el) {
-          S.makeChart("chartStorageByProject", { type: "bar", data: { labels: ["—"], datasets: [{ data: [0], backgroundColor: "#eceff1" }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-        }
-        return;
-      }      var entries = Object.keys(st.bytesByProject || {}).map(function (pid) {
-        var p = S.projectById(data, pid);
-        return { id: pid, name: p ? p.name : "deleted project", bytes: st.bytesByProject[pid] };
-      }).sort(function (a, b) { return b.bytes - a.bytes; }).slice(0, 8);
-      S.makeChart("chartStorageByProject", {
-        type: "bar",
-        data: {
-          labels: entries.map(function (e) { return e.name; }),
-          datasets: [{
-            label: "Storage",
-            data: entries.map(function (e) { return e.bytes; }),
-            backgroundColor: S.GREEN,
-            borderRadius: 4
-          }]
-        },
-        options: {
-          indexAxis: "y",
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: function (ctx) { return " " + S.fmtBytes(ctx.parsed.x || 0); } } }
-          },
-          scales: { x: { beginAtZero: true } }
-        },
-        onClick: function (ev, el) {
-          if (el && el.length) window.location.href = "project.html?id=" + entries[el[0].index].id;
-        }
-      });
-    });
-  }
-
   S.boot("files.html", function (data) {
     renderKpis(data);
     renderDiscChart(data);
     renderUploadsChart(data);
     renderFiles(data);
-    renderStorage(data);
   });
 })();

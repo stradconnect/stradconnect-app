@@ -117,7 +117,7 @@
       DB.from("profiles").select("id, email, full_name, company_name, created_at").order("created_at", { ascending: false }),
       DB.from("projects").select("id, name, location, project_type, status, created_at, user_id").order("created_at", { ascending: false }),
       DB.from("deleted_projects").select("project_name, admin_email, member_count, file_count, deleted_at, project_type, project_location").order("deleted_at", { ascending: false }),
-      DB.from("project_drawings").select("project_id, uploaded_by, drawing_name, revision_number, created_at").order("created_at", { ascending: true }),
+      DB.from("project_drawings").select("project_id, uploaded_by, drawing_name, revision_number, file_path, created_at").order("created_at", { ascending: true }),
       DB.from("drawing_comments").select("id, project_id, user_id, drawing_name, discipline_name, body, created_at").order("created_at", { ascending: true }),
       DB.from("project_invitations").select("project_id, email, discipline_id, status, created_at").order("created_at", { ascending: true }),
       DB.from("notifications").select("user_id, project_id, body, created_at").order("created_at", { ascending: true }),
@@ -275,6 +275,16 @@
 
   var STORAGE_CACHE = { data: null, loading: null };
 
+  function buildValidPaths(drawings) {
+    var set = new Set();
+    var n = 0;
+    (drawings || []).forEach(function (d) {
+      if (d && d.file_path) { set.add(String(d.file_path)); n++; }
+    });
+    set.version = n;
+    return set;
+  }
+
   function listAll(bucket, path, offset) {
     return bucket.list(path, { limit: 1000, offset: offset, sortBy: { column: "name", order: "asc" } }).then(function (res) {
       if (res.error) throw res.error;
@@ -282,7 +292,7 @@
     });
   }
 
-  function walkStorage(bucket, path, bytesByProject, bytesByFolder, onFile) {
+  function walkStorage(bucket, path, bytesByProject, bytesByFolder, filesByProject, validPaths, onFile) {
     return listAll(bucket, path, 0).then(function (items) {
       var files = [];
       var folders = [];
@@ -291,10 +301,15 @@
         else files.push(it);
       });
       files.forEach(function (f) {
+        var fullPath = path ? path + "/" + f.name : f.name;
+        if (validPaths && !validPaths.has(fullPath)) return;
         var size = (f.metadata && f.metadata.size) || 0;
+        var top = String(path || "").split("/")[0];
         if (bytesByProject) {
-          var top = String(path || "").split("/")[0];
           if (top) bytesByProject[top] = (bytesByProject[top] || 0) + size;
+        }
+        if (filesByProject) {
+          if (top) filesByProject[top] = (filesByProject[top] || 0) + 1;
         }
         if (bytesByFolder) {
           bytesByFolder[path || "(root)"] = (bytesByFolder[path || "(root)"] || 0) + size;
@@ -302,30 +317,30 @@
         if (onFile) onFile(f, size);
       });
       return Promise.all(folders.map(function (f) {
-        return walkStorage(bucket, path ? path + "/" + f : f, bytesByProject, bytesByFolder, onFile);
+        return walkStorage(bucket, path ? path + "/" + f : f, bytesByProject, bytesByFolder, filesByProject, validPaths, onFile);
       }));
     });
   }
 
-  function loadStorage(force) {
-    if (STORAGE_CACHE.data && !force) return Promise.resolve(STORAGE_CACHE.data);
+  function loadStorage(force, validPaths) {
     if (STORAGE_CACHE.loading) return STORAGE_CACHE.loading;
-    if (!DB) return Promise.resolve({ totalBytes: 0, files: 0, bytesByProject: {}, bytesByFolder: {}, error: "no db" });
+    if (!DB) return Promise.resolve({ totalBytes: 0, files: 0, bytesByProject: {}, bytesByFolder: {}, filesByProject: {}, error: "no db" });
     STORAGE_CACHE.loading = (function () {
       var bucket = DB.storage.from("project-files");
       var bytesByProject = {};
       var bytesByFolder = {};
+      var filesByProject = {};
       var totalFiles = 0;
       var totalBytes = 0;
-      return walkStorage(bucket, "", bytesByProject, bytesByFolder, function (f, size) {
+      return walkStorage(bucket, "", bytesByProject, bytesByFolder, filesByProject, validPaths, function (f, size) {
         totalFiles++;
         totalBytes += size;
       }).then(function () {
-        STORAGE_CACHE.data = { totalBytes: totalBytes, files: totalFiles, bytesByProject: bytesByProject, bytesByFolder: bytesByFolder, ts: Date.now() };
+        STORAGE_CACHE.data = { totalBytes: totalBytes, files: totalFiles, bytesByProject: bytesByProject, bytesByFolder: bytesByFolder, filesByProject: filesByProject, vpKey: validPaths ? validPaths.version : null, ts: Date.now() };
         STORAGE_CACHE.loading = null;
         return STORAGE_CACHE.data;
       }).catch(function (err) {
-        STORAGE_CACHE.data = { totalBytes: 0, files: 0, bytesByProject: {}, bytesByFolder: {}, ts: Date.now(), error: (err && err.message) || "storage listing failed" };
+        STORAGE_CACHE.data = { totalBytes: 0, files: 0, bytesByProject: {}, bytesByFolder: {}, filesByProject: {}, vpKey: validPaths ? validPaths.version : null, ts: Date.now(), error: (err && err.message) || "storage listing failed" };
         STORAGE_CACHE.loading = null;
         return STORAGE_CACHE.data;
       });
@@ -450,6 +465,7 @@
     cumulative: cumulative,
     makeChart: makeChart,
     loadStorage: loadStorage,
+    buildValidPaths: buildValidPaths,
     fmtBytes: fmtBytes,
     GREEN: GREEN,
     GOLD: GOLD,

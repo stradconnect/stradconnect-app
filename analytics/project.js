@@ -8,7 +8,7 @@
   }
 
   function renderStorage(data, p) {
-    S.loadStorage(true).then(function (st) {
+    S.loadStorage(true, S.buildValidPaths(data.drawings)).then(function (st) {
       var subEl = document.getElementById("storageSub");
       if (!subEl) return;
       var pId = String(p.id);

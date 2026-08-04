@@ -70,20 +70,8 @@
 
     <section class="panel">
       <h2>Storage Used</h2>
-      <p class="page-sub" style="margin-top:-8px;margin-bottom:14px;">Live from the <code>project-files</code> storage bucket on Supabase.</p>
+      <p class="page-sub" style="margin-top:-8px;margin-bottom:14px;">DB-tracked files in the <code>project-files</code> bucket. Per-project breakdown lives in <a href="projects.html" style="color:var(--green);font-weight:700;">Projects &rsaquo;</a></p>
       <div class="kpi-grid" id="storageKpis"><!-- populated by JS --></div>
-      <div class="chart-grid" style="margin-bottom:0;">
-        <div class="chart-card">
-          <h3>Storage by Project</h3>
-          <div class="chart-sub">Share of bucket per project</div>
-          <div class="chart-wrap"><canvas id="chartStorage"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Storage vs File Count</h3>
-          <div class="chart-sub">Average size per file</div>
-          <div class="chart-wrap"><canvas id="chartAvgSize"></canvas></div>
-        </div>
-      </div>
     </section>
 
     <section class="panel">
