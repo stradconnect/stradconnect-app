@@ -66,9 +66,9 @@
         "<td><strong>" + esc(p.name) + "</strong></td>" +
         "<td>" + esc(p.location || "—") + "</td>" +
         "<td>" + esc(p.project_type || "—") + "</td>" +
-        "<td>" + (p.file_count || 0) + "</td>" +
-        "<td>" + (p.comment_count || 0) + "</td>" +
-        "<td>" + (p.member_count || 0) + "</td>" +
+        "<td class=\"num\">" + (p.file_count || 0) + "</td>" +
+        "<td class=\"num\">" + (p.comment_count || 0) + "</td>" +
+        "<td class=\"num\">" + (p.member_count || 0) + "</td>" +
         "<td>" + fmtDate(p.created_at) + "</td>" +
         "</tr>";
     }).join("");
@@ -83,8 +83,8 @@
       return "<tr>" +
         "<td><strong>" + esc(d.project_name) + "</strong></td>" +
         "<td>" + esc(d.admin_email || "—") + "</td>" +
-        "<td>" + (d.member_count || 0) + "</td>" +
-        "<td>" + (d.file_count || 0) + "</td>" +
+        "<td class=\"num\">" + (d.member_count || 0) + "</td>" +
+        "<td class=\"num\">" + (d.file_count || 0) + "</td>" +
         "<td>" + fmtDate(d.deleted_at) + "</td>" +
         "</tr>";
     }).join("");
@@ -97,13 +97,12 @@
     }
     usersTbody.innerHTML = rows.map(function (u) {
       var names = (u.project_names || []).join(", ");
-      var projText = u.active_projects || 0;
-      if (names) projText += ' <span class="muted" title="' + esc(names) + '">(' + u.active_projects + ')</span>';
+      var projText = '<span title="' + esc(names || "No active projects") + '">' + (u.active_projects || 0) + "</span>";
       return "<tr>" +
         "<td><strong>" + esc(u.full_name || "—") + "</strong></td>" +
         "<td>" + esc(u.company_name || "—") + "</td>" +
         "<td>" + esc(u.email) + "</td>" +
-        "<td>" + projText + "</td>" +
+        "<td class=\"num\">" + projText + "</td>" +
         "<td>" + fmtDate(u.created_at) + "</td>" +
         "</tr>";
     }).join("");
