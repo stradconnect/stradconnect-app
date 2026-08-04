@@ -152,12 +152,7 @@ select {
 }
 
 .sidebar-account-panel span {
-  display: block;
-  margin-top: 3px;
-  color: #bed0c9;
-  font-size: 11px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
+  display: none;
 }
 
 .sidebar-account-actions {
@@ -1094,13 +1089,18 @@ select {
     font-size: 12px;
   }
 
-  .sidebar-account-panel span {
-    font-size: 10px;
-    margin-top: 1px;
+  .sidebar-account-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    justify-content: flex-end;
   }
 
-  .sidebar-account-actions {
-    display: none !important;
+  .sidebar-account-actions button {
+    min-height: 28px;
+    padding: 0 12px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   main {
