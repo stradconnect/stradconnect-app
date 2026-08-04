@@ -1,0 +1,31 @@
+{
+  "name": "STRAD CONNECT ANALYTICS",
+  "short_name": "SC Analytics",
+  "description": "Owner-only usage analytics for STRAD CONNECT.",
+  "start_url": "/analytics/",
+  "scope": "/analytics/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12231e",
+  "theme_color": "#17684f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
