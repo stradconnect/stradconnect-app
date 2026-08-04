@@ -69,6 +69,10 @@ select {
   color: #bed0c9;
 }
 
+.sidebar-brand-title {
+  font-family: "Michroma", "Segoe UI", Arial, sans-serif;
+}
+
 .nav {
   display: grid;
   gap: 8px;
