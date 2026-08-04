@@ -51,18 +51,6 @@ select {
   margin-bottom: 28px;
 }
 
-.brand-logo-link {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-}
-
-.brand-logo {
-  display: block;
-  height: 52px;
-  width: auto;
-}
-
 .brand-mark {
   display: grid;
   width: 42px;
@@ -1052,10 +1040,6 @@ select {
 
   .brand small {
     display: none;
-  }
-
-  .brand-logo {
-    height: 40px;
   }
 
   .sidebar-brand-title {
