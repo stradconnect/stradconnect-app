@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#17684f" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>STRAD CONNECT ANALYTICS | Project</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="lock-screen" class="lock hidden">
+    <div class="lock-card">
+      <div class="lock-mark">SC</div>
+      <h1>Access Restricted</h1>
+      <p>This area is reserved for the platform owner.</p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="topbar-brand">
+        <div class="topbar-mark">SC</div>
+        <div>
+          <strong>STRAD CONNECT</strong>
+          <small>Analytics</small>
+        </div>
+      </div>
+      <nav class="topbar-nav" id="navLinks"></nav>
+    </div>
+    <div class="topbar-actions">
+      <span id="accessBadge" class="access-badge"></span>
+      <button id="refreshBtn" class="btn-refresh">Refresh</button>
+      <button id="logoutBtn" class="btn-logout">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="container" id="mainContent">
+    <div class="drill-head">
+      <a class="back-link" href="projects.html">&larr; Back to Projects</a>
+      <div class="drill-title">
+        <h1 id="projTitle">Project</h1>
+        <span id="projBadge" class="badge active">Active</span>
+      </div>
+      <p class="page-sub" id="projSub"></p>
+    </div>
+
+    <section class="info-grid" id="projKpis"></section>
+
+    <section class="chart-grid">
+      <div class="chart-card">
+        <h3>Files by Discipline</h3>
+        <div class="chart-sub">Uploads per discipline</div>
+        <div class="chart-wrap"><canvas id="chartDisc"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Files &amp; Comments Over Time</h3>
+        <div class="chart-sub">Monthly uploads &amp; comments</div>
+        <div class="chart-wrap"><canvas id="chartTimeline"></canvas></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Team &amp; Roles</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Email</th>
+              <th>Role / Discipline</th>
+              <th>Status</th>
+              <th class="num">Comments</th>
+              <th class="num">Files</th>
+              <th>Joined</th>
+              <th>Last Interaction</th>
+            </tr>
+          </thead>
+          <tbody id="membersTable"><tr><td colspan="8" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Files</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Drawing</th>
+              <th>Discipline</th>
+              <th class="num">Revision</th>
+              <th>Uploaded</th>
+            </tr>
+          </thead>
+          <tbody id="filesTable"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Comments</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Drawing</th>
+              <th>Comment</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody id="commentsTable"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="common.js"></script>
+  <script src="project.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>

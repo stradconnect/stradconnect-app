@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#17684f" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>STRAD CONNECT ANALYTICS | Files</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="lock-screen" class="lock hidden">
+    <div class="lock-card">
+      <div class="lock-mark">SC</div>
+      <h1>Access Restricted</h1>
+      <p>This area is reserved for the platform owner.</p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="topbar-brand">
+        <div class="topbar-mark">SC</div>
+        <div>
+          <strong>STRAD CONNECT</strong>
+          <small>Analytics</small>
+        </div>
+      </div>
+      <nav class="topbar-nav" id="navLinks"></nav>
+    </div>
+    <div class="topbar-actions">
+      <span id="accessBadge" class="access-badge"></span>
+      <button id="refreshBtn" class="btn-refresh">Refresh</button>
+      <button id="logoutBtn" class="btn-logout">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="container" id="mainContent">
+    <div class="page-head">
+      <h1>Files</h1>
+      <p class="page-sub">Uploads across the platform &middot; <span id="lastUpdated"></span></p>
+    </div>
+
+    <section class="info-grid" id="fileKpis"></section>
+
+    <section class="chart-grid">
+      <div class="chart-card">
+        <h3>Files by Discipline</h3>
+        <div class="chart-sub">All uploads grouped by discipline</div>
+        <div class="chart-wrap"><canvas id="chartDiscAll"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Uploads Over Time</h3>
+        <div class="chart-sub">Files uploaded per month</div>
+        <div class="chart-wrap"><canvas id="chartUploads"></canvas></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Recent Uploads</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Drawing</th>
+              <th>Discipline</th>
+              <th>Project</th>
+              <th>Uploaded</th>
+            </tr>
+          </thead>
+          <tbody id="filesTable"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="common.js"></script>
+  <script src="files.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>

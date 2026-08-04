@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#17684f" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>STRAD CONNECT ANALYTICS | Data Sync</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="lock-screen" class="lock hidden">
+    <div class="lock-card">
+      <div class="lock-mark">SC</div>
+      <h1>Access Restricted</h1>
+      <p>This area is reserved for the platform owner.</p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="topbar-brand">
+        <div class="topbar-mark">SC</div>
+        <div>
+          <strong>STRAD CONNECT</strong>
+          <small>Analytics</small>
+        </div>
+      </div>
+      <nav class="topbar-nav" id="navLinks"></nav>
+    </div>
+    <div class="topbar-actions">
+      <span id="accessBadge" class="access-badge"></span>
+      <button id="refreshBtn" class="btn-refresh">Refresh</button>
+      <button id="logoutBtn" class="btn-logout">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="container" id="mainContent">
+    <div class="page-head">
+      <h1>Data Sync</h1>
+      <p class="page-sub">Freshness of your data sources &middot; loaded <span id="lastUpdated"></span></p>
+    </div>
+
+    <section class="info-grid" id="syncKpis"></section>
+
+    <section class="panel">
+      <h2>Source Freshness</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Table</th>
+              <th>Source</th>
+              <th class="num">Rows</th>
+              <th>Newest Record</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="syncTable"></tbody>
+        </table>
+      </div>
+      <p class="page-sub" style="margin-top:12px;">Analytics reads a snapshot on load / refresh. Press <strong>Refresh</strong> at any time to pull the latest data from Supabase.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Latest Platform Activity</h2>
+      <ul class="activity" id="activityFeed"><li class="empty-note">Loading...</li></ul>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="common.js"></script>
+  <script src="sync.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
