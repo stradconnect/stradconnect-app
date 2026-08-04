@@ -67,6 +67,12 @@ select {
   display: block;
   margin-top: 3px;
   color: #bed0c9;
+
+}
+
+.sidebar-brand-title {
+  font-family: 'Michroma', sans-serif;
+  letter-spacing: 0.04em;
 }
 
 .nav {
@@ -1044,8 +1050,6 @@ select {
 
   .sidebar-brand-title {
     font-size: 14px;
-    font-family: 'Michroma', sans-serif;
-    letter-spacing: 0.04em;
   }
 
   .nav {
