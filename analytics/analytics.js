@@ -231,9 +231,13 @@
       renderUsers(userRows);
 
       lastUpdatedEl.textContent = "last updated " + new Date().toLocaleTimeString("en-IN");
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "Refresh";
     }).catch(function (err) {
       kpiGrid.innerHTML = '<div class="kpi"><div class="kpi-label">Error</div><div class="kpi-value">—</div><div class="kpi-sub">' + esc(err && err.message ? err.message : "Failed to load data") + "</div></div>";
       lastUpdatedEl.textContent = "load failed";
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "Refresh";
     });
   }
 
@@ -242,7 +246,7 @@
 
     supabase.auth.getUser().then(function (userRes) {
       if (userRes.error || !userRes.data || !userRes.data.user) {
-        window.location.replace("../index.html");
+        window.location.replace("auth.html");
         return;
       }
       var email = String(userRes.data.user.email || "").toLowerCase().trim();
@@ -255,17 +259,21 @@
       setLocked(false);
       loadAll();
     }).catch(function () {
-      window.location.replace("../index.html");
+      window.location.replace("auth.html");
     });
   }
 
   logoutBtn.addEventListener("click", function () {
     supabase.auth.signOut().then(function () {
-      window.location.replace("../index.html");
+      window.location.replace("auth.html");
     });
   });
 
-  refreshBtn.addEventListener("click", loadAll);
+  refreshBtn.addEventListener("click", function () {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Refreshing...";
+    loadAll();
+  });
 
   start();
 })();
