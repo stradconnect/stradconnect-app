@@ -213,6 +213,40 @@
       text-transform: uppercase;
       font-weight: 700;
     }
+    .auth-consent {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 12px;
+      color: #66736f;
+      line-height: 1.6;
+    }
+    .auth-consent a,
+    .auth-consent-check a {
+      color: #285d92;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .auth-consent-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #f4f6f3;
+      border: 1px solid #dfe5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 12px 0;
+      font-size: 12.5px;
+      color: #41504b;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .auth-consent-check input {
+      margin-top: 2px;
+      accent-color: #17684f;
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
     .hidden {
       display: none !important;
     }
@@ -294,6 +328,10 @@
                 </button>
               </span>
             </label>
+            <label class="auth-consent-check">
+              <input type="checkbox" id="regConsent" />
+              <span>I accept the <a href="agreement.html" target="_blank" rel="noopener">User Agreement</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+            </label>
             <button type="button" id="btnCreateAccount" class="btn-auth-submit">Create Account</button>
           </div>
         </div>
@@ -363,6 +401,13 @@
         </div>
 
         <button type="submit" id="btnAuthSubmit" class="btn-auth-submit">Sign In to Dashboard</button>
+
+        <p class="auth-consent">
+          By continuing, you agree to the
+          <a href="agreement.html" target="_blank" rel="noopener">User Agreement</a>
+          and
+          <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
+        </p>
       </form>
 
       <div style="text-align: center; margin-top: 16px;">
@@ -678,6 +723,10 @@ btnCreateAccount.addEventListener("click", function() {
   var password = regPassword.value;
   var confirmPassword = regConfirmPassword.value;
 
+  if (!document.getElementById("regConsent").checked) {
+    alert("You must accept the User Agreement and Privacy Policy to create an account.");
+    return;
+  }
   if (!password || password.length < 6) { alert("Password must be at least 6 characters."); return; }
   if (password !== confirmPassword) { alert("Passwords do not match."); return; }
 
