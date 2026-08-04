@@ -69,6 +69,24 @@
     </section>
 
     <section class="panel">
+      <h2>Storage Used</h2>
+      <p class="page-sub" style="margin-top:-8px;margin-bottom:14px;">Live from the <code>project-files</code> storage bucket on Supabase.</p>
+      <div class="kpi-grid" id="storageKpis"><!-- populated by JS --></div>
+      <div class="chart-grid" style="margin-bottom:0;">
+        <div class="chart-card">
+          <h3>Storage by Project</h3>
+          <div class="chart-sub">Share of bucket per project</div>
+          <div class="chart-wrap"><canvas id="chartStorage"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Storage vs File Count</h3>
+          <div class="chart-sub">Average size per file</div>
+          <div class="chart-wrap"><canvas id="chartAvgSize"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>Quick Segments</h2>
       <p class="page-sub" style="margin-top:-8px;margin-bottom:14px;">Click any segment to drill into details.</p>
       <div class="kpi-grid" id="quickGrid"><!-- populated by JS --></div>
@@ -76,7 +94,7 @@
 
     <section class="panel">
       <h2>Recent Activity</h2>
-      <ul class="activity" id="activityFeed"><li class="empty-note">Loading...</li></ul>
+      <ul class="activity scroll-y" id="activityFeed"><li class="empty-note">Loading...</li></ul>
     </section>
   </main>
 

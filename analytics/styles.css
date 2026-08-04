@@ -299,6 +299,10 @@ body {
 }
 .empty-note { padding: 18px; text-align: center; color: var(--muted); font-size: 13.5px; }
 
+/* ---- Scrollable lists & tables (about 10 rows) ---- */
+.scroll-y { max-height: 420px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.scroll-y thead th { position: sticky; top: 0; background: var(--white); z-index: 1; box-shadow: 0 1px 0 var(--line); }
+
 @media (max-width: 700px) {
   .topbar { padding: 10px 16px; }
   .container { padding: 18px 14px 40px; }

@@ -7,6 +7,61 @@
     return m ? decodeURIComponent(m[1]) : null;
   }
 
+  function renderStorage(data, p) {
+    S.loadStorage(true).then(function (st) {
+      var subEl = document.getElementById("storageSub");
+      if (!subEl) return;
+      var pId = String(p.id);
+      if (st.error) {
+        subEl.textContent = "Storage unavailable: " + st.error;
+        S.makeChart("chartStorage", { type: "bar", data: { labels: ["—"], datasets: [{ data: [0], backgroundColor: "#eceff1" }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        return;
+      }
+      var bucketBytes = st.bytesByProject || {};
+      var projBytes = bucketBytes[pId] || 0;
+      if (projBytes <= 0) {
+        subEl.textContent = "No storage usage for this project.";
+        S.makeChart("chartStorage", { type: "bar", data: { labels: ["—"], datasets: [{ data: [0], backgroundColor: "#eceff1" }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        return;
+      }
+      var files = S.drawingsForProject(data, p.id);
+      var avg = files.length > 0 ? projBytes / files.length : 0;
+      subEl.textContent = S.fmtBytes(projBytes) + " total \u00b7 " + files.length + " files \u00b7 avg " + S.fmtBytes(avg);
+
+      var folderMap = st.bytesByFolder || {};
+      var levels = Object.keys(folderMap).filter(function (path) {
+        return String(path).split("/")[0] === pId;
+      });
+      var labels = levels.map(function (path) {
+        var parts = String(path).split("/");
+        return parts.length > 1 ? S.cleanDiscipline(parts[1]) : "(root)";
+      });
+      var values = levels.map(function (path) { return folderMap[path]; });
+
+      S.makeChart("chartStorage", {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Size",
+            data: values,
+            backgroundColor: S.GREEN,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: function (ctx) { return " " + S.fmtBytes(ctx.parsed.x || 0); } } }
+          },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    });
+  }
+
   function headerGear(data, p) {
     document.getElementById("projTitle").textContent = p.name || "Project";
     var badge = document.getElementById("projBadge");
@@ -160,5 +215,6 @@
     renderMembers(data, p);
     renderFiles(data, p);
     renderComments(data, p);
+    renderStorage(data, p);
   });
 })();

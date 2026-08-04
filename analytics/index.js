@@ -214,10 +214,86 @@
     return p ? p.name : "deleted project";
   }
 
+  function renderStorage(data) {
+    S.loadStorage(true).then(function (st) {
+      var kpisEl = document.getElementById("storageKpis");
+      if (!kpisEl) return;
+      var avg = st.files > 0 ? st.totalBytes / st.files : 0;
+      var defs = [
+        { label: "Storage Used", value: S.fmtBytes(st.totalBytes), sub: "in project-files bucket", gold: true },
+        { label: "Files in Storage", value: st.files, sub: "objects in bucket", gold: false },
+        { label: "Avg File Size", value: S.fmtBytes(avg), sub: "per object", gold: false },
+        { label: "Projects Using Storage", value: Object.keys(st.bytesByProject || {}).length, sub: "with uploaded files", gold: false }
+      ];
+      kpisEl.innerHTML = defs.map(function (d) {
+        return '<div class="kpi' + (d.gold ? " gold" : "") + '">' +
+          '<div class="kpi-label">' + S.esc(d.label) + '</div>' +
+          '<div class="kpi-value">' + S.esc(d.value) + '</div>' +
+          (d.sub ? '<div class="kpi-sub">' + S.esc(d.sub) + "</div>" : "") +
+          "</div>";
+      }).join("");
+
+      var entries = Object.keys(st.bytesByProject || {}).map(function (pid) {
+        return { id: pid, bytes: st.bytesByProject[pid], name: projectName(data, pid) };
+      }).sort(function (a, b) { return b.bytes - a.bytes; }).slice(0, 8);
+
+      S.makeChart("chartStorage", {
+        type: "doughnut",
+        data: {
+          labels: entries.map(function (e) { return e.name; }),
+          datasets: [{
+            data: entries.map(function (e) { return e.bytes; }),
+            backgroundColor: S.PALETTE,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "right" },
+            tooltip: { callbacks: { label: function (ctx) { return " " + ctx.label + ": " + S.fmtBytes(ctx.parsed || 0); } } }
+          }
+        },
+        onClick: function (ev, el) {
+          if (el && el.length) window.location.href = "project.html?id=" + entries[el[0].index].id;
+        }
+      });
+
+      var byProject = (data.projects || []).map(function (p) {
+        return { name: p.name, bytes: (st.bytesByProject || {})[p.id] || 0, files: S.drawingsForProject(data, p.id).length, id: p.id };
+      }).sort(function (a, b) { return b.bytes - a.bytes; }).slice(0, 8);
+      S.makeChart("chartAvgSize", {
+        type: "bar",
+        data: {
+          labels: byProject.map(function (x) { return x.name; }),
+          datasets: [{
+            label: "Avg file size",
+            data: byProject.map(function (x) { return x.files > 0 ? Math.round(x.bytes / x.files) : 0; }),
+            backgroundColor: S.GOLD,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: function (ctx) { return " " + S.fmtBytes(ctx.parsed.x || 0) + " / file"; } } }
+          },
+          scales: { x: { beginAtZero: true } }
+        },
+        onClick: function (ev, el) {
+          if (el && el.length) window.location.href = "project.html?id=" + byProject[el[0].index].id;
+        }
+      });
+    });
+  }
+
   S.boot("index.html", function (data) {
     renderKpis(data);
     renderQuick(data);
     renderCharts(data);
     renderActivity(data);
+    renderStorage(data);
   });
 })();

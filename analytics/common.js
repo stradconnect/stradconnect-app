@@ -56,6 +56,18 @@
     return String(v);
   }
 
+  function fmtBytes(n) {
+    if (n == null || isNaN(n)) return "0 B";
+    var v = Number(n) || 0;
+    if (v < 1024) return v + " B";
+    var kb = v / 1024;
+    if (kb < 1024) return kb.toFixed(1) + " KB";
+    var mb = kb / 1024;
+    if (mb < 1024) return mb.toFixed(2) + " MB";
+    var gb = mb / 1024;
+    return gb.toFixed(2) + " GB";
+  }
+
   function initialsOf(u) {
     if (!u) return "?";
     var name = u.full_name || "";
@@ -261,6 +273,66 @@
 
   var chartInstances = {};
 
+  var STORAGE_CACHE = { data: null, loading: null };
+
+  function listAll(bucket, path, offset) {
+    return bucket.list(path, { limit: 1000, offset: offset, sortBy: { column: "name", order: "asc" } }).then(function (res) {
+      if (res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+
+  function walkStorage(bucket, path, bytesByProject, bytesByFolder, onFile) {
+    return listAll(bucket, path, 0).then(function (items) {
+      var files = [];
+      var folders = [];
+      items.forEach(function (it) {
+        if (it.id === null || it.id === undefined || it.metadata === null) folders.push(it.name);
+        else files.push(it);
+      });
+      files.forEach(function (f) {
+        var size = (f.metadata && f.metadata.size) || 0;
+        if (bytesByProject) {
+          var top = String(path || "").split("/")[0];
+          if (top) bytesByProject[top] = (bytesByProject[top] || 0) + size;
+        }
+        if (bytesByFolder) {
+          bytesByFolder[path || "(root)"] = (bytesByFolder[path || "(root)"] || 0) + size;
+        }
+        if (onFile) onFile(f, size);
+      });
+      return Promise.all(folders.map(function (f) {
+        return walkStorage(bucket, path ? path + "/" + f : f, bytesByProject, bytesByFolder, onFile);
+      }));
+    });
+  }
+
+  function loadStorage(force) {
+    if (STORAGE_CACHE.data && !force) return Promise.resolve(STORAGE_CACHE.data);
+    if (STORAGE_CACHE.loading) return STORAGE_CACHE.loading;
+    if (!DB) return Promise.resolve({ totalBytes: 0, files: 0, bytesByProject: {}, bytesByFolder: {}, error: "no db" });
+    STORAGE_CACHE.loading = (function () {
+      var bucket = DB.storage.from("project-files");
+      var bytesByProject = {};
+      var bytesByFolder = {};
+      var totalFiles = 0;
+      var totalBytes = 0;
+      return walkStorage(bucket, "", bytesByProject, bytesByFolder, function (f, size) {
+        totalFiles++;
+        totalBytes += size;
+      }).then(function () {
+        STORAGE_CACHE.data = { totalBytes: totalBytes, files: totalFiles, bytesByProject: bytesByProject, bytesByFolder: bytesByFolder, ts: Date.now() };
+        STORAGE_CACHE.loading = null;
+        return STORAGE_CACHE.data;
+      }).catch(function (err) {
+        STORAGE_CACHE.data = { totalBytes: 0, files: 0, bytesByProject: {}, bytesByFolder: {}, ts: Date.now(), error: (err && err.message) || "storage listing failed" };
+        STORAGE_CACHE.loading = null;
+        return STORAGE_CACHE.data;
+      });
+    })();
+    return STORAGE_CACHE.loading;
+  }
+
   function makeChart(canvasId, config) {
     if (!window.Chart) return null;
     var canvas = document.getElementById(canvasId);
@@ -377,6 +449,8 @@
     buildMonthlySeries: buildMonthlySeries,
     cumulative: cumulative,
     makeChart: makeChart,
+    loadStorage: loadStorage,
+    fmtBytes: fmtBytes,
     GREEN: GREEN,
     GOLD: GOLD,
     PALETTE: PALETTE,
