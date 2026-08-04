@@ -92,14 +92,18 @@
 
   function renderUsers(rows) {
     if (!rows || !rows.length) {
-      usersTbody.innerHTML = '<tr><td colspan="4" class="muted">No users yet.</td></tr>';
+      usersTbody.innerHTML = '<tr><td colspan="5" class="muted">No users yet.</td></tr>';
       return;
     }
     usersTbody.innerHTML = rows.map(function (u) {
+      var names = (u.project_names || []).join(", ");
+      var projText = u.active_projects || 0;
+      if (names) projText += ' <span class="muted" title="' + esc(names) + '">(' + u.active_projects + ')</span>';
       return "<tr>" +
         "<td><strong>" + esc(u.full_name || "—") + "</strong></td>" +
         "<td>" + esc(u.company_name || "—") + "</td>" +
         "<td>" + esc(u.email) + "</td>" +
+        "<td>" + projText + "</td>" +
         "<td>" + fmtDate(u.created_at) + "</td>" +
         "</tr>";
     }).join("");
@@ -117,7 +121,7 @@
       db.from("deleted_projects").select("project_name, admin_email, member_count, file_count, deleted_at").order("deleted_at", { ascending: false }),
       db.from("project_drawings").select("project_id"),
       db.from("drawing_comments").select("id, project_id"),
-      db.from("project_invitations").select("id"),
+      db.from("project_invitations").select("project_id, email, status"),
       db.from("notifications").select("user_id, created_at")
     ]).then(function (results) {
       var profiles = results[0].data || [];
@@ -133,8 +137,18 @@
       var commentsByProject = {};
       comments.forEach(function (r) { commentsByProject[r.project_id] = (commentsByProject[r.project_id] || 0) + 1; });
 
-      var projectMembers = {};
-      projects.forEach(function (p) { projectMembers[p.id] = 0; });
+      var memberEmailsByProject = {};
+      projects.forEach(function (p) {
+        memberEmailsByProject[p.id] = {};
+      });
+      invites.forEach(function (iv) {
+        if (iv.status !== "Accepted") return;
+        if (!memberEmailsByProject[iv.project_id]) memberEmailsByProject[iv.project_id] = {};
+        memberEmailsByProject[iv.project_id][String(iv.email || "").toLowerCase().trim()] = true;
+      });
+
+      var activeProjectIds = {};
+      projects.forEach(function (p) { activeProjectIds[p.id] = true; });
 
       var distinctActiveUsers = {};
       notifications.forEach(function (n) {
@@ -147,8 +161,34 @@
         if (new Date(u.created_at) >= cutoff30) newUsers++;
       });
 
+      var activeProjectsByUser = {};
+      profiles.forEach(function (u) {
+        activeProjectsByUser[u.id] = { count: 0, names: [] };
+      });
+
+      projects.forEach(function (p) {
+        var ownerId = String(p.user_id);
+        if (activeProjectsByUser[ownerId]) {
+          activeProjectsByUser[ownerId].count++;
+          activeProjectsByUser[ownerId].names.push(p.name);
+        }
+        var members = memberEmailsByProject[p.id] || {};
+        Object.keys(members).forEach(function (mEmail) {
+          profiles.forEach(function (u) {
+            if (String(u.email || "").toLowerCase().trim() === mEmail) {
+              activeProjectsByUser[u.id].count++;
+              activeProjectsByUser[u.id].names.push(p.name);
+            }
+          });
+        });
+      });
+
       var projectRows = projects.map(function (p) {
-        var members = 1;
+        var memberEmails = Object.keys(memberEmailsByProject[p.id] || {});
+        var ownerEmailMatched = profiles.some(function (u) {
+          return String(u.id) === String(p.user_id);
+        });
+        var members = memberEmails.length + (ownerEmailMatched ? 1 : 0);
         var drawCount = filesByProject[p.id] || 0;
         var commCount = commentsByProject[p.id] || 0;
         return {
@@ -159,6 +199,19 @@
           file_count: drawCount,
           comment_count: commCount,
           member_count: members
+        };
+      });
+
+      var userRows = profiles.map(function (u) {
+        var ap = activeProjectsByUser[u.id] || { count: 0, names: [] };
+        return {
+          id: u.id,
+          email: u.email,
+          full_name: u.full_name,
+          company_name: u.company_name,
+          created_at: u.created_at,
+          active_projects: ap.count,
+          project_names: ap.names
         };
       });
 
@@ -176,7 +229,7 @@
 
       renderProjects(projectRows);
       renderDeleted(deleted);
-      renderUsers(profiles);
+      renderUsers(userRows);
 
       lastUpdatedEl.textContent = "last updated " + new Date().toLocaleTimeString("en-IN");
     }).catch(function (err) {
