@@ -56,6 +56,13 @@ select {
   color: inherit;
 }
 
+.brand-link:visited,
+.brand-link:hover,
+.brand-link:active {
+  color: inherit;
+  text-decoration: none;
+}
+
 .brand-mark {
   display: grid;
   width: 46px;
@@ -80,6 +87,10 @@ select {
   font-size: 15px;
   font-weight: 400;
   letter-spacing: 0.02em;
+  color: #ffffff;
+  display: block;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .nav {
