@@ -112,56 +112,6 @@
       },
       options: { maintainAspectRatio: false, plugins: { legend: { position: "right" } } }
     });
-
-    var filesByProject = (data.drawings || []).reduce(function (m, d) { m[d.project_id] = (m[d.project_id] || 0) + 1; return m; }, {});
-    var withFiles = projects.map(function (p) { return { name: p.name, n: filesByProject[p.id] || 0, id: p.id }; })
-      .sort(function (a, b) { return b.n - a.n; }).slice(0, 8);
-    S.makeChart("chartFiles", {
-      type: "bar",
-      data: {
-        labels: withFiles.map(function (x) { return x.name; }),
-        datasets: [{
-          label: "Files",
-          data: withFiles.map(function (x) { return x.n; }),
-          backgroundColor: S.GREEN,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        indexAxis: "y",
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-      },
-      onClick: function (ev, el) {
-        if (el && el.length) window.location.href = "project.html?id=" + withFiles[el[0].index].id;
-      }
-    });
-
-    var commentsByProject = (data.comments || []).reduce(function (m, c) { m[c.project_id] = (m[c.project_id] || 0) + 1; return m; }, {});
-    var withComments = projects.map(function (p) { return { name: p.name, n: commentsByProject[p.id] || 0, id: p.id }; })
-      .sort(function (a, b) { return b.n - a.n; }).slice(0, 8);
-    S.makeChart("chartComments", {
-      type: "bar",
-      data: {
-        labels: withComments.map(function (x) { return x.name; }),
-        datasets: [{
-          label: "Comments",
-          data: withComments.map(function (x) { return x.n; }),
-          backgroundColor: S.GOLD,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        indexAxis: "y",
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-      },
-      onClick: function (ev, el) {
-        if (el && el.length) window.location.href = "project.html?id=" + withComments[el[0].index].id;
-      }
-    });
   }
 
   function renderActivity(data) {
