@@ -2914,7 +2914,7 @@ function showNotificationToast(row) {
   if (!container) return;
   var toast = document.createElement("div");
   toast.className = "notif-toast";
-  toast.innerHTML = '<div class="notif-toast-title">' + escapeHtml(row.title || "STRADCONNECT") + '</div>'
+  toast.innerHTML = '<div class="notif-toast-title">' + escapeHtml(row.title || "STRAD CONNECT") + '</div>'
     + '<div class="notif-toast-body">' + escapeHtml(row.body || "") + '</div>';
   toast.addEventListener("click", function() {
     try {
@@ -2946,7 +2946,7 @@ function fireBrowserNotification(row) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
   try {
-    var notif = new Notification(row.title || "STRADCONNECT", {
+    var notif = new Notification(row.title || "STRAD CONNECT", {
       body: row.body || "",
       tag: "stradconnect-" + row.id
     });
