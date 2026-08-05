@@ -72,7 +72,9 @@ select {
 
 .sidebar-brand-title {
   font-family: 'Michroma', sans-serif;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .nav {
@@ -1049,7 +1051,7 @@ select {
   }
 
   .sidebar-brand-title {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .nav {
