@@ -1007,6 +1007,7 @@ function fetchAndRenderHubProjects() {
     currentUserId = String(userRes.data.user.id);
     setupPushNotifications();
     subscribeToNotifications();
+    refreshPushEnableButton();
     return currentLogUser;
   })
   .then(function(user) {
@@ -2952,37 +2953,126 @@ function requestNotificationPermission() {
   }
 }
 
+function savePushSubscription(sub) {
+  if (!sub || !supabase) return null;
+  var data = sub.toJSON();
+  if (!data || !data.endpoint || !data.keys) return null;
+  return supabase.from("push_subscriptions")
+    .upsert({
+      user_id: currentUserId,
+      endpoint: data.endpoint,
+      auth: data.keys.auth,
+      p256dh: data.keys.p256dh
+    }, { onConflict: "endpoint" });
+}
+
+function subscribeToPush(reg) {
+  return Notification.requestPermission().then(function (perm) {
+    if (perm !== "granted") return null;
+    return reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  });
+}
+
 function setupPushNotifications() {
   if (!currentUserId) return;
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") {
+    refreshPushEnableButton();
+    return;
+  }
   navigator.serviceWorker.register("sw.js")
     .then(function (reg) {
-      return Notification.requestPermission().then(function (perm) {
-        if (perm !== "granted") return null;
-        return reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
-      });
+      return subscribeToPush(reg);
     })
     .then(function (sub) {
-      if (!sub || !supabase) return;
-      var data = sub.toJSON();
-      if (!data || !data.endpoint || !data.keys) return;
-      return supabase.from("push_subscriptions")
-        .upsert({
-          user_id: currentUserId,
-          endpoint: data.endpoint,
-          auth: data.keys.auth,
-          p256dh: data.keys.p256dh
-        }, { onConflict: "endpoint" });
+      return savePushSubscription(sub);
     })
     .then(function (res) {
       if (res && res.error) console.error("Push subscription save failed:", res.error);
+      refreshPushEnableButton();
     })
     .catch(function (err) {
       console.error("Push setup failed:", err);
+      refreshPushEnableButton();
     });
+}
+
+function refreshPushEnableButton() {
+  var btn = document.querySelector("#btnEnablePush");
+  if (!btn || !currentUserId || !("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      navigator.serviceWorker.getRegistration("sw.js").then(function (reg) {
+        if (reg && reg.pushManager) {
+          reg.pushManager.getSubscription().then(function (sub) {
+            if (sub) {
+              btn.style.display = "none";
+            } else {
+              btn.style.display = "";
+              btn.textContent = "🔔 Enable notifications";
+            }
+          }).catch(function () { btn.style.display = ""; });
+        } else {
+          btn.style.display = "";
+        }
+      }).catch(function () { btn.style.display = ""; });
+    } else {
+      btn.style.display = "";
+      btn.textContent = "🔔 Add app to Home Screen for notifications";
+    }
+  } else if (Notification.permission === "denied") {
+    btn.style.display = "";
+    btn.textContent = "🔕 Notifications blocked — allow in browser settings";
+  } else {
+    btn.style.display = "";
+    btn.textContent = "🔔 Enable notifications";
+  }
+}
+
+function enablePushOnClick() {
+  if (!currentUserId) return;
+  if (!("serviceWorker" in navigator)) {
+    alert("This browser does not support notifications.");
+    return;
+  }
+  if (!("Notification" in window) || !("PushManager" in window)) {
+    alert("To get notifications, install this app to your Home Screen, then reopen it and tap Enable.");
+    return;
+  }
+  navigator.serviceWorker.register("sw.js")
+    .then(function (reg) {
+      return subscribeToPush(reg);
+    })
+    .then(function (sub) {
+      return savePushSubscription(sub);
+    })
+    .then(function (res) {
+      if (res && res.error) {
+        console.error("Push subscription save failed:", res.error);
+        alert("Could not save your notification subscription. Please try again.");
+      } else {
+        showNotificationToast({
+          title: "STRAD CONNECT",
+          body: "Notifications enabled. You'll be notified here and on this device."
+        });
+      }
+      refreshPushEnableButton();
+    })
+    .catch(function (err) {
+      console.error("Push enable failed:", err);
+      refreshPushEnableButton();
+    });
+}
+
+var btnEnablePush = document.querySelector("#btnEnablePush");
+if (btnEnablePush) {
+  btnEnablePush.addEventListener("click", function (e) {
+    e.stopPropagation();
+    enablePushOnClick();
+  });
 }
 
 function triggerRemotePush(recipientIds, notif) {
