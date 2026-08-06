@@ -1,4 +1,4 @@
-var CACHE = "stradconnect-v1";
+var CACHE = "stradconnect-v2";
 
 var CORE_ASSETS = [
   "./",
@@ -31,6 +31,44 @@ self.addEventListener("activate", function (event) {
     })
   );
   self.clients.claim();
+});
+
+self.addEventListener("push", function (event) {
+  var data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = {};
+  }
+  var title = data.title || "STRAD CONNECT";
+  var options = {
+    body: data.body || "",
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
+    tag: data.tag || "stradconnect",
+    data: { url: data.url || "./dashboard.html" }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  var url = (event.notification.data && event.notification.data.url) || "./dashboard.html";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) {
+            try { client.navigate(url); } catch (e) {}
+          }
+          return;
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener("fetch", function (event) {

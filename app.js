@@ -43,7 +43,17 @@ var defaultSelected = new Set([
 // =========================================================================
 var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
 var SUPABASE_ANON_KEY = "sb_publishable_GS-TjYrkZ88-aL01RpaUAg_m5z-RlJI";
+var VAPID_PUBLIC_KEY = "BCkEo_AvuTy-HSJMKZhytR6ZxS3i25Yb9i8Xb7eFJNPipZeYi2djxWeowu5a4Izx3ryipp5IuD-8eQqyTjm7Cgs";
 var APP_BASE_URL = (window.location.protocol === "file:") ? "http://10.129.166.195:3000" : window.location.origin;
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  var raw = atob(base64);
+  var output = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
 
 var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
@@ -995,7 +1005,7 @@ function fetchAndRenderHubProjects() {
     }
     currentLogUser = userRes.data.user;
     currentUserId = String(userRes.data.user.id);
-    requestNotificationPermission();
+    setupPushNotifications();
     subscribeToNotifications();
     return currentLogUser;
   })
@@ -2942,6 +2952,65 @@ function requestNotificationPermission() {
   }
 }
 
+function setupPushNotifications() {
+  if (!currentUserId) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+  navigator.serviceWorker.register("sw.js")
+    .then(function (reg) {
+      return Notification.requestPermission().then(function (perm) {
+        if (perm !== "granted") return null;
+        return reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      });
+    })
+    .then(function (sub) {
+      if (!sub || !supabase) return;
+      var data = sub.toJSON();
+      if (!data || !data.endpoint || !data.keys) return;
+      return supabase.from("push_subscriptions")
+        .upsert({
+          user_id: currentUserId,
+          endpoint: data.endpoint,
+          auth: data.keys.auth,
+          p256dh: data.keys.p256dh
+        }, { onConflict: "endpoint" });
+    })
+    .then(function (res) {
+      if (res && res.error) console.error("Push subscription save failed:", res.error);
+    })
+    .catch(function (err) {
+      console.error("Push setup failed:", err);
+    });
+}
+
+function triggerRemotePush(recipientIds, notif) {
+  if (!supabase || !recipientIds || !recipientIds.length) return;
+  supabase.auth.getSession().then(function (s) {
+    var token = s && s.data.session ? s.data.session.access_token : "";
+    if (!token) return;
+    var url = notif.project_id
+      ? (APP_BASE_URL + "/dashboard.html?project=" + encodeURIComponent(notif.project_id))
+      : (APP_BASE_URL + "/dashboard.html");
+    fetch(SUPABASE_URL + "/functions/v1/send-push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        user_ids: recipientIds,
+        title: notif.title || "STRAD CONNECT",
+        body: notif.body || "",
+        url: url
+      })
+    }).catch(function (err) {
+      console.error("send-push call failed:", err);
+    });
+  }).catch(function () {});
+}
+
 function fireBrowserNotification(row) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
@@ -3102,6 +3171,7 @@ function createNotifications(recipientIds, notif) {
   }
   return supabase.from("notifications").insert(rows).then(function(res) {
     if (res.error) console.error("Failed to create notifications:", res.error);
+    triggerRemotePush(recipientIds, notif);
   });
 }
 
