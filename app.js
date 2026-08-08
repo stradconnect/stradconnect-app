@@ -3247,21 +3247,47 @@ function filterMutedRecipients(projectId, ids) {
     .catch(function() { return ids; });
 }
 
+var projectNameCache = {};
+
+function getProjectName(projectId) {
+  if (!projectId) return Promise.resolve("");
+  if (projectNameCache[projectId]) return Promise.resolve(projectNameCache[projectId]);
+  if (!supabase) return Promise.resolve("");
+  return supabase.from("projects").select("name").eq("id", projectId).single().then(function (res) {
+    var n = (res.data && res.data.name) || "";
+    projectNameCache[projectId] = n;
+    return n;
+  }).catch(function () { return ""; });
+}
+
 function createNotifications(recipientIds, notif) {
   if (!supabase || !recipientIds || !recipientIds.length) return Promise.resolve();
-  var rows = [];
-  for (var i = 0; i < recipientIds.length; i++) {
-    rows.push({
-      user_id: recipientIds[i],
-      project_id: notif.project_id || null,
-      type: notif.type || "general",
-      title: notif.title || "",
-      body: notif.body || ""
+  return getProjectName(notif.project_id).then(function (projectName) {
+    var title = notif.title || "";
+    if (projectName && title && title.indexOf(projectName) === -1) {
+      title = projectName + " \u00B7 " + title;
+    } else if (projectName && !title) {
+      title = projectName;
+    }
+    var rows = [];
+    for (var i = 0; i < recipientIds.length; i++) {
+      rows.push({
+        user_id: recipientIds[i],
+        project_id: notif.project_id || null,
+        type: notif.type || "general",
+        title: title,
+        body: notif.body || ""
+      });
+    }
+    return supabase.from("notifications").insert(rows).then(function (res) {
+      if (res.error) console.error("Failed to create notifications:", res.error);
+      triggerRemotePush(recipientIds, {
+        title: title,
+        body: notif.body || "",
+        project_id: notif.project_id || null,
+        type: notif.type || "general"
+      });
     });
-  }
-  return supabase.from("notifications").insert(rows).then(function(res) {
-    if (res.error) console.error("Failed to create notifications:", res.error);
-    triggerRemotePush(recipientIds, notif);
   });
 }
 
