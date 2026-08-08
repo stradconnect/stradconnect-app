@@ -2414,6 +2414,21 @@ if (modalSubmitBtn) {
         return;
       }
       computedRevisionNumber = 0; 
+      promiseChain = supabase
+        .from("project_drawings")
+        .select("id")
+        .eq("project_id", currentActiveProjectId)
+        .ilike("drawing_name", finalDrawingName)
+        .eq("is_visible", true)
+        .limit(1)
+        .then(function(dupRes) {
+          if (dupRes.error) throw dupRes.error;
+          if (dupRes.data && dupRes.data.length > 0) {
+            var dupErr = new Error("A drawing named \u201C" + finalDrawingName + "\u201D already exists in this project. Use the REVISION track to upload a new version of it.");
+            dupErr.userFriendly = true;
+            throw dupErr;
+          }
+        });
     } else {
       var selectedOpt = modalTargetDrawingSelect.options[modalTargetDrawingSelect.selectedIndex];
       if (!selectedOpt || !selectedOpt.value) {
@@ -2520,7 +2535,11 @@ if (modalSubmitBtn) {
       })
       .catch(function(err) {
         console.error(err);
-        alert("Transaction Aborted: " + (err.message || err));
+        if (err && err.userFriendly) {
+          alert(err.message);
+        } else {
+          alert("Transaction Aborted: " + (err.message || err));
+        }
       })
       .then(function() {
         modalSubmitBtn.disabled = false;
