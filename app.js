@@ -780,6 +780,8 @@ function deleteComment(commentId) {
 function postDrawingComment() {
   if (!currentCommentsDrawingId || !commentsInput) return;
   var body = commentsInput.value.trim();
+  var drawingName = "";
+  var discName = "";
   if (!body) {
     alert("Please write a comment before posting.");
     return;
@@ -787,11 +789,11 @@ function postDrawingComment() {
   supabase.from("project_drawings").select("drawing_name, folder_id").eq("id", currentCommentsDrawingId).single()
     .then(function(drwRes) {
       if (drwRes.error) throw drwRes.error;
-      var drawingName = drwRes.data.drawing_name;
+      drawingName = drwRes.data.drawing_name;
       return supabase.from("project_folders").select("project_disciplines!inner(name)").eq("id", drwRes.data.folder_id).single()
         .then(function(folRes) {
           if (folRes.error) throw folRes.error;
-          var discName = folRes.data.project_disciplines.name.replace(/^\d+_\s*/, "");
+          discName = folRes.data.project_disciplines.name.replace(/^\d+_\s*/, "");
           return supabase.from("drawing_comments").insert([{
             drawing_id: currentCommentsDrawingId,
             project_id: currentActiveProjectId,
