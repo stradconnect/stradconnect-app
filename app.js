@@ -55,6 +55,32 @@ function urlBase64ToUint8Array(base64String) {
   return output;
 }
 
+function getSignedFileUrls(paths) {
+  if (!supabase || !paths || !paths.length) return Promise.resolve({});
+  var unique = [];
+  var seen = {};
+  for (var i = 0; i < paths.length; i++) {
+    if (paths[i] && !seen[paths[i]]) { seen[paths[i]] = true; unique.push(paths[i]); }
+  }
+  return supabase.storage.from("project-files").createSignedUrls(unique, 3600)
+    .then(function(res) {
+      var map = {};
+      if (res.error) throw res.error;
+      for (var j = 0; j < (res.data || []).length; j++) {
+        var item = res.data[j];
+        if (!item || !item.path) continue;
+        var u = item.signedUrl || "";
+        if (u && u.indexOf("http") !== 0) u = SUPABASE_URL + u;
+        map[item.path] = u;
+      }
+      return map;
+    })
+    .catch(function(err) {
+      console.error("Signed URL fetch failed:", err);
+      return {};
+    });
+}
+
 var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // UI View Viewports
@@ -632,34 +658,44 @@ function openRevisionHistory(drawingId) {
   rows.sort(function(a, b) { return b.revision_number - a.revision_number; });
   if (revisionHistoryTitle) revisionHistoryTitle.textContent = selectedDrawing.drawing_name + ".pdf";
 
-  var html = "";
-  for (var h = 0; h < rows.length; h++) {
-    var drw = rows[h];
-    var stamp = new Date(drw.created_at).toLocaleDateString("en-IN") + " " + new Date(drw.created_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' });
-    var statusLabel = "";
-    if (drw.is_visible) {
-      statusLabel = " • Current visible record";
-    } else if (drw.file_path) {
-      statusLabel = " • Archived record";
-    } else {
-      statusLabel = " • No file (overwritten/removed)";
-    }
-    var viewBtn = "";
-    if (drw.file_path) {
-      var publicFileUrl = SUPABASE_URL + "/storage/v1/object/public/project-files/" + drw.file_path;
-      viewBtn = '<a href="' + publicFileUrl + '" target="_blank" rel="noopener" class="btn-view-pdf" style="text-decoration:none; font-size:11px; background:#edf2f7; padding:5px 8px; border-radius:4px; color:#2d3748; font-weight:700; white-space:nowrap;">View</a>';
-    }
-    html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:#fbfcfb;">' +
-              '<div>' +
-                '<strong style="font-size:13px;">R' + drw.revision_number + statusLabel + '</strong>' +
-                '<div class="hint" style="margin-top:3px;">' + drw.uploaded_by.replace(/^\d+_\s*/, "") + ' • ' + stamp + '</div>' +
-              '</div>' +
-              viewBtn +
-            '</div>';
+  var revFilePaths = [];
+  for (var rp = 0; rp < rows.length; rp++) {
+    if (rows[rp].file_path) revFilePaths.push(rows[rp].file_path);
   }
+  getSignedFileUrls(revFilePaths).then(function(revSignedUrls) {
+    var html = "";
+    for (var h = 0; h < rows.length; h++) {
+      var drw = rows[h];
+      var stamp = new Date(drw.created_at).toLocaleDateString("en-IN") + " " + new Date(drw.created_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' });
+      var statusLabel = "";
+      if (drw.is_visible) {
+        statusLabel = " • Current visible record";
+      } else if (drw.file_path) {
+        statusLabel = " • Archived record";
+      } else {
+        statusLabel = " • No file (overwritten/removed)";
+      }
+      var viewBtn = "";
+      if (drw.file_path) {
+        var signedRevUrl = revSignedUrls[drw.file_path] || "";
+        if (signedRevUrl) {
+          viewBtn = '<a href="' + signedRevUrl + '" target="_blank" rel="noopener" class="btn-view-pdf" style="text-decoration:none; font-size:11px; background:#edf2f7; padding:5px 8px; border-radius:4px; color:#2d3748; font-weight:700; white-space:nowrap;">View</a>';
+        } else {
+          viewBtn = '<span style="font-size:11px; color:#a0aec0;">No access</span>';
+        }
+      }
+      html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:#fbfcfb;">' +
+                '<div>' +
+                  '<strong style="font-size:13px;">R' + drw.revision_number + statusLabel + '</strong>' +
+                  '<div class="hint" style="margin-top:3px;">' + drw.uploaded_by.replace(/^\d+_\s*/, "") + ' • ' + stamp + '</div>' +
+                '</div>' +
+                viewBtn +
+              '</div>';
+    }
 
-  revisionHistoryRows.innerHTML = html || '<span class="hint">No revision history found.</span>';
-  revisionHistoryModalOverlay.style.display = "flex";
+    revisionHistoryRows.innerHTML = html || '<span class="hint">No revision history found.</span>';
+    revisionHistoryModalOverlay.style.display = "flex";
+  });
 }
 
 // =========================================================================
@@ -1627,15 +1663,20 @@ function renderAllFolderDrawingFeeds(projectId) {
 
       applyWorkspaceFilterVisibility({}, {});
 
-      var matchedFolderMap = {};
-      var matchedLevelMap = {};
+      var feedFilePaths = [];
+      for (var fp = 0; fp < drawings.length; fp++) {
+        if (drawings[fp].is_visible && drawings[fp].file_path) feedFilePaths.push(drawings[fp].file_path);
+      }
+      return getSignedFileUrls(feedFilePaths).then(function(signedUrlMap) {
+        var matchedFolderMap = {};
+        var matchedLevelMap = {};
 
-      for (var d = 0; d < drawings.length; d++) {
-        var drw = drawings[d];
-        if (!drw.is_visible) continue; 
-        if (!drawingMatchesActiveFilters(drw)) continue;
+        for (var d = 0; d < drawings.length; d++) {
+          var drw = drawings[d];
+          if (!drw.is_visible) continue; 
+          if (!drawingMatchesActiveFilters(drw)) continue;
 
-        var publicFileUrl = SUPABASE_URL + "/storage/v1/object/public/project-files/" + drw.file_path;
+          var publicFileUrl = signedUrlMap[drw.file_path] || "";
         var levelFolderName = getLevelFolderFromDrawing(drw);
         
         var feedId = "feed_" + drw.folder_id + "_" + levelFolderName;
@@ -1663,10 +1704,14 @@ function renderAllFolderDrawingFeeds(projectId) {
             trashTriggerHtmlButton = '<button type="button" onclick="executeDrawingSoftDelete(\'' + drw.id + '\', \'' + rawFolderDiscTag + '\')" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; color: #e53e3e; cursor: pointer; font-size: 13px; padding: 3px 7px; line-height: 1;" title="Delete file">🗑️</button>';
           }
 
+          var fileLink = publicFileUrl
+            ? '<a href="' + publicFileUrl + '" target="_blank" rel="noopener" title="Open PDF" style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #2d3748; text-decoration: none; cursor: pointer; vertical-align: bottom;">📄 ' + drw.drawing_name + '.pdf</a>'
+            : '<span style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #a0aec0; vertical-align: bottom;">📄 ' + drw.drawing_name + '.pdf</span>';
+
           var rowHtml = '<div class="drawing-ledger-row" onclick="event.stopPropagation();" style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; margin-top: 4px; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.01);">' +
                           '<div style="display: flex; align-items: center; gap: 8px; overflow: hidden; min-width: 0; flex: 1;">' +
                             '<span style="background: var(--blue); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0;">' + revLabel + '</span>' +
-                            '<a href="' + publicFileUrl + '" target="_blank" rel="noopener" title="Open PDF" style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #2d3748; text-decoration: none; cursor: pointer; vertical-align: bottom;">📄 ' + drw.drawing_name + '.pdf</a>' +
+                            fileLink +
                           '</div>' +
                           '<div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">' +
                             '<span style="font-size: 11px; color: #a0aec0; margin-right: 4px;">' + stampText + '</span>' +
@@ -1688,6 +1733,7 @@ function renderAllFolderDrawingFeeds(projectId) {
       }
 
       applyWorkspaceFilterVisibility(matchedFolderMap, matchedLevelMap);
+      });
     })
     .catch(function(err) {
       console.error(err);
@@ -2703,18 +2749,27 @@ document.body.addEventListener("click", function(event) {
     var cleanDiscName = String(disciplineName).replace(/^\d+_\s*/, "");
     var edgeFunctionUrl = SUPABASE_URL.replace(/\/$/, "") + "/functions/v1/send-invite";
 
-    fetch(edgeFunctionUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + SUPABASE_ANON_KEY },
-      body: JSON.stringify({ to: emailValue, projectName: projectName, disciplineName: cleanDiscName, inviteLink: generatedJoinLink })
-    })
-    .then(function(fetchRes) { return fetchRes.json(); })
-    .then(function(result) {
-      if (result.error) throw new Error(result.error);
-      alert("✉️ Invitation sent to " + emailValue);
-    })
-    .catch(function() {
-      alert("✉️ Invitation recorded! Email service unavailable. Share this link manually:\n" + generatedJoinLink);
+    supabase.auth.getSession().then(function(s) {
+      var token = (s && s.data.session) ? s.data.session.access_token : "";
+      if (!token) {
+        alert("✉️ Invitation recorded! Share this link manually:\n" + generatedJoinLink);
+        return;
+      }
+      fetch(edgeFunctionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ to: emailValue, projectName: projectName, disciplineName: cleanDiscName, inviteLink: generatedJoinLink })
+      })
+      .then(function(fetchRes) { return fetchRes.json(); })
+      .then(function(result) {
+        if (result.error) throw new Error(result.error);
+        alert("✉️ Invitation sent to " + emailValue);
+      })
+      .catch(function() {
+        alert("✉️ Invitation recorded! Email service unavailable. Share this link manually:\n" + generatedJoinLink);
+      });
+    }).catch(function() {
+      alert("✉️ Invitation recorded! Share this link manually:\n" + generatedJoinLink);
     });
 
     button.textContent = "Sent";
