@@ -19,8 +19,6 @@
   .btn-hide:hover { background: #e2e8f0; }
   .frame-wrap { height: calc(100vh - 56px); }
   iframe { width: 100%; height: 100%; border: 0; background: #e7eaea; }
-  .pdf-render { height: 100%; overflow-y: auto; background: #525659; padding: 16px; }
-  .pdf-render canvas { display: block; max-width: 100%; margin: 0 auto 14px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.35); background: #fff; }
   .msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 56px); text-align: center; padding: 24px; gap: 14px; }
   .msg h2 { font-size: 20px; color: #2d3748; }
   .msg p { font-size: 13px; color: #718096; max-width: 440px; line-height: 1.6; }
@@ -39,11 +37,9 @@
   <div class="frame-wrap">
     <div id="msgBox" class="msg" style="display:none;"></div>
     <iframe id="pdfFrame" title="Drawing" style="display:none;"></iframe>
-    <div id="pdfRender" class="pdf-render" style="display:none;"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script>
     (function () {
       var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
@@ -55,7 +51,6 @@
 
       var msgBox = document.getElementById("msgBox");
       var pdfFrame = document.getElementById("pdfFrame");
-      var pdfRender = document.getElementById("pdfRender");
       var docMeta = document.getElementById("docMeta");
       var dlBtn = document.getElementById("dlBtn");
 
@@ -103,16 +98,11 @@
       }).then(function (blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob);
-        dlBtn.href = url;
+        pdfFrame.src = url;
+        pdfFrame.style.display = "block";
         dlBtn.style.display = "inline-block";
+        dlBtn.href = url;
         try { dlBtn.setAttribute("download", ""); } catch (e) {}
-
-        if (window.pdfjsLib) {
-          renderWithPdfJs(blob);
-        } else {
-          pdfFrame.src = url;
-          pdfFrame.style.display = "block";
-        }
       }).catch(function (err) {
         console.error("Secure viewer failed:", err);
         var denied = err && /access|permission|not exist/i.test(String(err.message || err));
@@ -121,38 +111,6 @@
               ? "Your account is not a member of this project, so the file cannot be opened. If this is a mistake, ask the project admin to re-invite you."
               : "The file could not be loaded. It may have been removed from the project. Details: " + String((err && err.message) || err) + " (HTTP " + String((err && err.status) || (err && err.statusCode) || "?") + ")");
       });
-
-      function renderWithPdfJs(blob) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-        blob.arrayBuffer()
-          .then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; })
-          .then(function (pdf) {
-            pdfRender.innerHTML = "";
-            pdfRender.style.display = "block";
-            var pageCanvasWidth = Math.max(300, Math.min(900, (window.innerWidth || 768) - 40));
-            var loadOne = function (i) {
-              if (i > pdf.numPages) return;
-              pdf.getPage(i).then(function (page) {
-                var baseViewport = page.getViewport({ scale: 1 });
-                var scale = pageCanvasWidth / baseViewport.width;
-                var viewport = page.getViewport({ scale: scale });
-                var canvas = document.createElement("canvas");
-                canvas.width = Math.floor(viewport.width);
-                canvas.height = Math.floor(viewport.height);
-                var ctx = canvas.getContext("2d");
-                page.render({ canvasContext: ctx, viewport: viewport }).promise
-                  .then(function () { pdfRender.appendChild(canvas); loadOne(i + 1); })
-                  .catch(function () { loadOne(i + 1); });
-              }).catch(function () { loadOne(i + 1); });
-            };
-            loadOne(1);
-          })
-          .catch(function (err) {
-            die("🔒", "Cannot open drawing",
-                "The PDF could not be rendered. Details: " + String((err && err.message) || err));
-          });
-      }
     })();
   </script>
 </body>
