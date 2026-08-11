@@ -658,13 +658,8 @@ function openRevisionHistory(drawingId) {
   rows.sort(function(a, b) { return b.revision_number - a.revision_number; });
   if (revisionHistoryTitle) revisionHistoryTitle.textContent = selectedDrawing.drawing_name + ".pdf";
 
-  var revFilePaths = [];
-  for (var rp = 0; rp < rows.length; rp++) {
-    if (rows[rp].file_path) revFilePaths.push(rows[rp].file_path);
-  }
-  getSignedFileUrls(revFilePaths).then(function(revSignedUrls) {
-    var html = "";
-    for (var h = 0; h < rows.length; h++) {
+var html = "";
+  for (var h = 0; h < rows.length; h++) {
       var drw = rows[h];
       var stamp = new Date(drw.created_at).toLocaleDateString("en-IN") + " " + new Date(drw.created_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' });
       var statusLabel = "";
@@ -677,12 +672,7 @@ function openRevisionHistory(drawingId) {
       }
       var viewBtn = "";
       if (drw.file_path) {
-        var signedRevUrl = revSignedUrls[drw.file_path] || "";
-        if (signedRevUrl) {
-          viewBtn = '<a href="' + signedRevUrl + '" target="_blank" rel="noopener" class="btn-view-pdf" style="text-decoration:none; font-size:11px; background:#edf2f7; padding:5px 8px; border-radius:4px; color:#2d3748; font-weight:700; white-space:nowrap;">View</a>';
-        } else {
-          viewBtn = '<span style="font-size:11px; color:#a0aec0;">No access</span>';
-        }
+        viewBtn = '<a href="viewer.html?d=' + drw.id + '" target="_blank" rel="noopener" class="btn-view-pdf" style="text-decoration:none; font-size:11px; background:#edf2f7; padding:5px 8px; border-radius:4px; color:#2d3748; font-weight:700; white-space:nowrap;">View</a>';
       }
       html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:#fbfcfb;">' +
                 '<div>' +
@@ -695,7 +685,6 @@ function openRevisionHistory(drawingId) {
 
     revisionHistoryRows.innerHTML = html || '<span class="hint">No revision history found.</span>';
     revisionHistoryModalOverlay.style.display = "flex";
-  });
 }
 
 // =========================================================================
@@ -1669,7 +1658,7 @@ function renderAllFolderDrawingFeeds(projectId) {
       for (var fp = 0; fp < drawings.length; fp++) {
         if (drawings[fp].is_visible && drawings[fp].file_path) feedFilePaths.push(drawings[fp].file_path);
       }
-      return getSignedFileUrls(feedFilePaths).then(function(signedUrlMap) {
+      return Promise.resolve().then(function() {
         var matchedFolderMap = {};
         var matchedLevelMap = {};
 
@@ -1678,7 +1667,6 @@ function renderAllFolderDrawingFeeds(projectId) {
           if (!drw.is_visible) continue; 
           if (!drawingMatchesActiveFilters(drw)) continue;
 
-          var publicFileUrl = signedUrlMap[drw.file_path] || "";
         var levelFolderName = getLevelFolderFromDrawing(drw);
         
         var feedId = "feed_" + drw.folder_id + "_" + levelFolderName;
@@ -1706,9 +1694,7 @@ function renderAllFolderDrawingFeeds(projectId) {
             trashTriggerHtmlButton = '<button type="button" onclick="executeDrawingSoftDelete(\'' + drw.id + '\', \'' + rawFolderDiscTag + '\')" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; color: #e53e3e; cursor: pointer; font-size: 13px; padding: 3px 7px; line-height: 1;" title="Delete file">🗑️</button>';
           }
 
-          var fileLink = publicFileUrl
-            ? '<a href="' + publicFileUrl + '" target="_blank" rel="noopener" title="Open PDF" style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #2d3748; text-decoration: none; cursor: pointer; vertical-align: bottom;">📄 ' + drw.drawing_name + '.pdf</a>'
-            : '<span style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #a0aec0; vertical-align: bottom;">📄 ' + drw.drawing_name + '.pdf</span>';
+          var fileLink = '<a href="viewer.html?d=' + drw.id + '" target="_blank" rel="noopener" title="Open PDF" style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #2d3748; text-decoration: none; cursor: pointer; vertical-align: bottom;">📄 ' + drw.drawing_name + '.pdf</a>';
 
           var rowHtml = '<div class="drawing-ledger-row" onclick="event.stopPropagation();" style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; margin-top: 4px; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.01);">' +
                           '<div style="display: flex; align-items: center; gap: 8px; overflow: hidden; min-width: 0; flex: 1;">' +
