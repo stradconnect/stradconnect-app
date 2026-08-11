@@ -90,7 +90,11 @@
           return;
         }
         docMeta.textContent = row.drawing_name + " · R" + (row.revision_number == null ? "" : row.revision_number) + " · " + (row.file_path ? row.file_path.split("/").pop() : "");
-        return supabase.storage.from("project-files").download(row.file_path);
+        return supabase.storage.from("project-files").download(row.file_path).then(function (dlRes) {
+          if (!dlRes) return null;
+          if (dlRes.error) throw dlRes.error;
+          return dlRes.data;
+        });
       }).then(function (blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob);

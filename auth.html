@@ -261,7 +261,7 @@
       <!-- Branding Logo -->
       <div style="display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 24px;">
         <div style="background: #17684f; color: #fff; width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; border: 1px solid rgba(239,183,90,0.5); box-shadow: 0 0 0 3px rgba(239,183,90,0.12);">SC</div>
-        <strong style="font-size: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.04em; color: #12231e;">STRAD CONNECT</strong>
+        <strong style="font-size: 16px; font-family: 'Michroma', sans-serif; letter-spacing: 0.04em; color: #12231e;">STRAD CONNECT</strong>
       </div>
 
       <!-- Mode Selection Tabs -->
@@ -278,7 +278,7 @@
         <!-- ===== REGISTRATION FIELDS ===== -->
         <div id="registerFields" class="hidden">
           <label class="auth-label">
-            Full Professional Name
+            Full Name
             <input type="text" id="regName" class="auth-input" placeholder="Type Your Name Here..." />
           </label>
           <label class="auth-label">
@@ -286,7 +286,7 @@
             <input type="text" id="regCompany" class="auth-input" placeholder="Company Name..." />
           </label>
           <label class="auth-label">
-            Professional Email Address
+            Email Address
             <input type="email" id="regEmail" class="auth-input" placeholder="engineer@firm.com" />
           </label>
 
@@ -340,7 +340,7 @@
         <!-- ===== LOGIN FIELDS ===== -->
         <div id="loginFields">
           <label class="auth-label">
-            Professional Email Address
+            Email Address
             <input type="email" id="authEmail" class="auth-input" placeholder="engineer@firm.com" required />
           </label>
           <div id="passwordFieldWrapper">
@@ -412,7 +412,7 @@
       </form>
 
       <div style="text-align: center; margin-top: 16px;">
-        <a href="index.html" id="backLink" style="font-size: 13px; color: #285d92; text-decoration: none;">&larr; Back to Corporate Site</a>
+        <a href="index.html" id="backLink" style="font-size: 13px; color: #285d92; text-decoration: none;">&larr; Back to Home Page</a>
       </div>
 
       <div class="auth-brand-strip">Engineering Document Control · Secure Coordination Matrix</div>
@@ -538,7 +538,7 @@ function setMode(mode) {
     tabLogin.classList.remove("active");
     authTitle.textContent = "Create Master Account";
     authSubtitle.textContent = "Deploy a secure coordination footprint on STRAD CONNECT.";
-    backLink.innerHTML = "&larr; Back to Corporate Site";
+    backLink.innerHTML = "&larr; Back to Home Page";
     authTabsContainer.style.display = "grid";
     resetRegState();
 
@@ -553,7 +553,7 @@ function setMode(mode) {
     authTitle.textContent = "Welcome Back";
     authSubtitle.textContent = "Access your isolated engineering workspace matrix.";
     btnAuthSubmit.textContent = "Sign In to Dashboard";
-    backLink.innerHTML = "&larr; Back to Corporate Site";
+    backLink.innerHTML = "&larr; Back to Home Page";
     authTabsContainer.style.display = "grid";
     resetForgotState();
     forgotOtpSection.classList.add("hidden");
