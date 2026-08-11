@@ -101,11 +101,11 @@
         try { dlBtn.setAttribute("download", ""); } catch (e) {}
       }).catch(function (err) {
         console.error("Secure viewer failed:", err);
-        var denied = err && /access|permission|not exist|bucket/i.test(String(err.message || err));
+        var denied = err && /access|permission|not exist/i.test(String(err.message || err));
         die(denied ? "⛔" : "🔒", denied ? "Access denied" : "Cannot open drawing",
             denied
               ? "Your account is not a member of this project, so the file cannot be opened. If this is a mistake, ask the project admin to re-invite you."
-              : "The file could not be loaded. It may have been removed from the project.");
+              : "The file could not be loaded. It may have been removed from the project. Details: " + String((err && err.message) || err) + " (HTTP " + String((err && err.status) || (err && err.statusCode) || "?") + ")");
       });
     })();
   </script>
