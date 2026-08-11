@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Drawing Viewer · STRAD CONNECT</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f3f5f4; color: #1f2933; height: 100vh; overflow: hidden; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; color: #17684f; white-space: nowrap; }
+  .brand span { color: #b7791f; }
+  .meta { font-size: 12px; color: #5f6b66; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  button, a.dl { border: 0; border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; }
+  .btn-dl { background: #17684f; color: #fff; }
+  .btn-dl:hover { background: #125b45; }
+  .btn-hide { background: #edf2f7; color: #2d3748; }
+  .btn-hide:hover { background: #e2e8f0; }
+  .frame-wrap { height: calc(100vh - 56px); }
+  iframe { width: 100%; height: 100%; border: 0; background: #e7eaea; }
+  .msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 56px); text-align: center; padding: 24px; gap: 14px; }
+  .msg h2 { font-size: 20px; color: #2d3748; }
+  .msg p { font-size: 13px; color: #718096; max-width: 440px; line-height: 1.6; }
+  .msg .ic { font-size: 44px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">STRAD <span>CONNECT</span></div>
+    <div class="meta" id="docMeta">Loading drawing…</div>
+    <div class="actions">
+      <a class="btn-hide" href="dashboard.html">Back to Dashboard</a>
+      <a class="btn-dl" id="dlBtn" style="display:none;" download>Download</a>
+    </div>
+  </div>
+  <div class="frame-wrap">
+    <div id="msgBox" class="msg" style="display:none;"></div>
+    <iframe id="pdfFrame" title="Drawing" style="display:none;"></iframe>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function () {
+      var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
+      var SUPABASE_ANON_KEY = "sb_publishable_GS-TjYrkZ88-aL01RpaUAg_m5z-RlJI";
+      var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+      var params = new URLSearchParams(window.location.search);
+      var drawingId = params.get("d") || params.get("drawing_id") || "";
+
+      var msgBox = document.getElementById("msgBox");
+      var pdfFrame = document.getElementById("pdfFrame");
+      var docMeta = document.getElementById("docMeta");
+      var dlBtn = document.getElementById("dlBtn");
+
+      function showMsg(icon, title, body) {
+        msgBox.style.display = "flex";
+        msgBox.innerHTML = '<div class="ic">' + icon + '</div>' +
+          '<h2>' + title + '</h2>' +
+          '<p>' + body + '</p>';
+      }
+
+      function die(icon, title, body) {
+        docMeta.textContent = "";
+        showMsg(icon, title, body);
+      }
+
+      if (!supabase || !drawingId) {
+        die("⚠️", "Invalid link", "This drawing viewer link is missing a drawing reference.");
+        return;
+      }
+
+      supabase.auth.getUser().then(function (userRes) {
+        if (userRes.error || !userRes.data.user) {
+          window.location.href = "auth.html?mode=login";
+          return;
+        }
+        return supabase
+          .from("project_drawings")
+          .select("file_path, drawing_name, project_id, revision_number")
+          .eq("id", drawingId)
+          .maybeSingle();
+      }).then(function (rowRes) {
+        if (!rowRes) return;
+        if (rowRes.error) throw rowRes.error;
+        var row = rowRes.data;
+        if (!row || !row.file_path) {
+          die("⛔", "Access denied", "You are not a member of this project, or this drawing record is no longer accessible.");
+          return;
+        }
+        docMeta.textContent = row.drawing_name + " · R" + (row.revision_number == null ? "" : row.revision_number) + " · " + (row.file_path ? row.file_path.split("/").pop() : "");
+        return supabase.storage.from("project-files").download(row.file_path).then(function (dlRes) {
+          if (!dlRes) return null;
+          if (dlRes.error) throw dlRes.error;
+          return dlRes.data;
+        });
+      }).then(function (blob) {
+        if (!blob) return;
+        var url = URL.createObjectURL(blob);
+        pdfFrame.src = url;
+        pdfFrame.style.display = "block";
+        dlBtn.style.display = "inline-block";
+        dlBtn.href = url;
+        try { dlBtn.setAttribute("download", ""); } catch (e) {}
+      }).catch(function (err) {
+        console.error("Secure viewer failed:", err);
+        var denied = err && /access|permission|not exist/i.test(String(err.message || err));
+        die(denied ? "⛔" : "🔒", denied ? "Access denied" : "Cannot open drawing",
+            denied
+              ? "Your account is not a member of this project, so the file cannot be opened. If this is a mistake, ask the project admin to re-invite you."
+              : "The file could not be loaded. It may have been removed from the project. Details: " + String((err && err.message) || err) + " (HTTP " + String((err && err.status) || (err && err.statusCode) || "?") + ")");
+      });
+    })();
+  </script>
+</body>
+</html>
