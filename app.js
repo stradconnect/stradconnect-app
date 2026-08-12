@@ -2700,6 +2700,16 @@ if (createButton) {
 // =========================================================================
 // ✉️ DISPATCH INVITATION LINK PIPELINE WITH AUTO-RESET STATE
 // =========================================================================
+var lastInviteSendAt = {};
+function isInviteRecentlySent(disciplineId) {
+  var key = String(disciplineId);
+  var last = lastInviteSendAt[key] || 0;
+  return (Date.now() - last) < 60000;
+}
+function markInviteSent(disciplineId) {
+  lastInviteSendAt[String(disciplineId)] = Date.now();
+}
+
 document.body.addEventListener("click", function(event) {
   var editInviteIcon = event.target.closest(".dash-card-edit-invite");
   if (editInviteIcon) {
@@ -2722,6 +2732,12 @@ document.body.addEventListener("click", function(event) {
   var isResend = !!resendBtn;
   var disciplineId = button.dataset.discId;
   var disciplineName = button.dataset.discName;
+
+  if (isInviteRecentlySent(disciplineId)) {
+    alert("An invitation to this discipline was just sent. Please wait about a minute before sending again.");
+    return;
+  }
+
   var emailValue = isResend ? button.dataset.discEmail : (document.querySelector("#dash_invite_" + disciplineId) ? document.querySelector("#dash_invite_" + disciplineId).value.trim().toLowerCase() : "");
 
   if (!emailValue) {
@@ -2785,6 +2801,7 @@ document.body.addEventListener("click", function(event) {
   }
 
   if (isResend) {
+    markInviteSent(disciplineId);
     sendInviteEmail();
   } else {
     supabase
@@ -2797,6 +2814,7 @@ document.body.addEventListener("click", function(event) {
       }])
       .then(function(res) {
         if (res.error) throw res.error;
+        markInviteSent(disciplineId);
         sendInviteEmail();
       })
       .catch(function(err) {
