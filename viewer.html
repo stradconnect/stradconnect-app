@@ -7,24 +7,44 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f3f5f4; color: #1f2933; height: 100vh; overflow: hidden; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: #ffffff; border-bottom: 1px solid #e2e8f0; gap: 8px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; color: #17684f; white-space: nowrap; }
   .brand span { color: #b7791f; }
-  .meta { font-size: 12px; color: #5f6b66; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meta { font-size: 11px; color: #5f6b66; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .actions { display: flex; gap: 8px; align-items: center; }
-  button, a.dl { border: 0; border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; }
+  button, a.dl { border: 0; border-radius: 6px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; }
   .btn-dl { background: #17684f; color: #fff; }
   .btn-dl:hover { background: #125b45; }
   .btn-hide { background: #edf2f7; color: #2d3748; }
   .btn-hide:hover { background: #e2e8f0; }
-  .frame-wrap { height: calc(100vh - 56px); }
-  iframe { width: 100%; height: 100%; border: 0; background: #e7eaea; }
-  .pdf-render { height: 100%; overflow-y: auto; background: #525659; padding: 16px; }
-  .pdf-render canvas { display: block; max-width: 100%; margin: 0 auto 14px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.35); background: #fff; }
-  .msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 56px); text-align: center; padding: 24px; gap: 14px; }
+  .frame-wrap { height: calc(100vh - 52px); }
+  .msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 24px; gap: 14px; }
   .msg h2 { font-size: 20px; color: #2d3748; }
   .msg p { font-size: 13px; color: #718096; max-width: 440px; line-height: 1.6; }
   .msg .ic { font-size: 44px; }
+
+  /* Viewer control bar */
+  .vbar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; overflow-x: auto; flex-wrap: nowrap; }
+  .vbar button { background: #ffffff; border: 1px solid #d9e0e6; color: #2d3748; padding: 5px 10px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .vbar button:hover { background: #edf2f7; }
+  .vbar button:disabled { opacity: 0.45; cursor: default; }
+  .vbar .group { display: flex; align-items: center; gap: 4px; }
+  .vbar .sep { width: 1px; height: 22px; background: #d9e0e6; margin: 0 4px; }
+  .vbar .pageno { font-size: 12px; font-weight: 700; color: #2d3748; white-space: nowrap; }
+  .vbar .zlabel { min-width: 52px; text-align: center; font-size: 12px; font-weight: 700; color: #2d3748; }
+  .vbar input[type="text"] { border: 1px solid #d9e0e6; border-radius: 6px; padding: 5px 8px; font-size: 12px; min-width: 90px; outline: none; }
+  .vbar input[type="text"]:focus { border-color: #17684f; }
+  .vbar .status { font-size: 11px; color: #718096; white-space: nowrap; }
+
+  /* Pages */
+  .pdf-render { overflow: auto; background: #525659; height: calc(100% - 42px); cursor: grab; user-select: none; }
+  .pdf-render.dragging { cursor: grabbing; }
+  .page { position: relative; margin: 12px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.4); background: #ffffff; }
+  .page canvas { display: block; }
+  .page .textLayer { position: absolute; inset: 0; overflow: hidden; opacity: 0.25; line-height: 1; text-align: initial; }
+  .textLayer span, .textLayer br { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+  .textLayer .hl { background: #ffe066; color: #000; opacity: 1; }
+  .textLayer .hl.active { background: #ff9500; color: #000; outline: 2px solid #d9730d; }
 </style>
 </head>
 <body>
@@ -39,121 +59,39 @@
   <div class="frame-wrap">
     <div id="msgBox" class="msg" style="display:none;"></div>
     <iframe id="pdfFrame" title="Drawing" style="display:none;"></iframe>
-    <div id="pdfRender" class="pdf-render" style="display:none;"></div>
+    <div id="viewerWrap" style="display:none;">
+      <div class="vbar">
+        <div class="group">
+          <button id="pgPrev" title="Previous page">&#9664;</button>
+          <span class="pageno" id="pageNo">1 / 1</span>
+          <button id="pgNext" title="Next page">&#9654;</button>
+        </div>
+        <div class="sep"></div>
+        <div class="group">
+          <button id="zoomOut" title="Zoom out">&#8722;</button>
+          <span class="zlabel" id="zoomLabel">100%</span>
+          <button id="zoomIn" title="Zoom in">&#65291;</button>
+        </div>
+        <div class="sep"></div>
+        <div class="group">
+          <button id="fitWidth" title="Fit width">Fit Width</button>
+          <button id="fitPage" title="Fit page">Fit Page</button>
+          <button id="actualSize" title="Actual size">100%</button>
+        </div>
+        <div class="sep"></div>
+        <div class="group">
+          <input type="text" id="searchInput" placeholder="Search…">
+          <button id="searchPrev" title="Previous match">&#9664;</button>
+          <button id="searchNext" title="Next match">&#9654;</button>
+          <span class="status" id="searchStatus"></span>
+        </div>
+      </div>
+      <div id="pdfRender" class="pdf-render"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script>
-    (function () {
-      var SUPABASE_URL = "https://addkzbtpzuujghpidplu.supabase.co";
-      var SUPABASE_ANON_KEY = "sb_publishable_GS-TjYrkZ88-aL01RpaUAg_m5z-RlJI";
-      var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-      var params = new URLSearchParams(window.location.search);
-      var drawingId = params.get("d") || params.get("drawing_id") || "";
-
-      var msgBox = document.getElementById("msgBox");
-      var pdfFrame = document.getElementById("pdfFrame");
-      var pdfRender = document.getElementById("pdfRender");
-      var docMeta = document.getElementById("docMeta");
-      var dlBtn = document.getElementById("dlBtn");
-
-      function showMsg(icon, title, body) {
-        msgBox.style.display = "flex";
-        msgBox.innerHTML = '<div class="ic">' + icon + '</div>' +
-          '<h2>' + title + '</h2>' +
-          '<p>' + body + '</p>';
-      }
-
-      function die(icon, title, body) {
-        docMeta.textContent = "";
-        showMsg(icon, title, body);
-      }
-
-      if (!supabase || !drawingId) {
-        die("⚠️", "Invalid link", "This drawing viewer link is missing a drawing reference.");
-        return;
-      }
-
-      supabase.auth.getUser().then(function (userRes) {
-        if (userRes.error || !userRes.data.user) {
-          window.location.href = "auth.html?mode=login";
-          return;
-        }
-        return supabase
-          .from("project_drawings")
-          .select("file_path, drawing_name, project_id, revision_number")
-          .eq("id", drawingId)
-          .maybeSingle();
-      }).then(function (rowRes) {
-        if (!rowRes) return;
-        if (rowRes.error) throw rowRes.error;
-        var row = rowRes.data;
-        if (!row || !row.file_path) {
-          die("⛔", "Access denied", "You are not a member of this project, or this drawing record is no longer accessible.");
-          return;
-        }
-        docMeta.textContent = row.drawing_name + " · R" + (row.revision_number == null ? "" : row.revision_number) + " · " + (row.file_path ? row.file_path.split("/").pop() : "");
-        return supabase.storage.from("project-files").download(row.file_path).then(function (dlRes) {
-          if (!dlRes) return null;
-          if (dlRes.error) throw dlRes.error;
-          return dlRes.data;
-        });
-      }).then(function (blob) {
-        if (!blob) return;
-        var url = URL.createObjectURL(blob);
-        dlBtn.href = url;
-        dlBtn.style.display = "inline-block";
-        try { dlBtn.setAttribute("download", ""); } catch (e) {}
-
-        if (window.pdfjsLib) {
-          renderWithPdfJs(blob);
-        } else {
-          pdfFrame.src = url;
-          pdfFrame.style.display = "block";
-        }
-      }).catch(function (err) {
-        console.error("Secure viewer failed:", err);
-        var denied = err && /access|permission|not exist/i.test(String(err.message || err));
-        die(denied ? "⛔" : "🔒", denied ? "Access denied" : "Cannot open drawing",
-            denied
-              ? "Your account is not a member of this project, so the file cannot be opened. If this is a mistake, ask the project admin to re-invite you."
-              : "The file could not be loaded. It may have been removed from the project. Details: " + String((err && err.message) || err) + " (HTTP " + String((err && err.status) || (err && err.statusCode) || "?") + ")");
-      });
-
-      function renderWithPdfJs(blob) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-        blob.arrayBuffer()
-          .then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; })
-          .then(function (pdf) {
-            pdfRender.innerHTML = "";
-            pdfRender.style.display = "block";
-            var pageCanvasWidth = Math.max(300, Math.min(900, (window.innerWidth || 768) - 40));
-            var loadOne = function (i) {
-              if (i > pdf.numPages) return;
-              pdf.getPage(i).then(function (page) {
-                var baseViewport = page.getViewport({ scale: 1 });
-                var scale = pageCanvasWidth / baseViewport.width;
-                var viewport = page.getViewport({ scale: scale });
-                var canvas = document.createElement("canvas");
-                canvas.width = Math.floor(viewport.width);
-                canvas.height = Math.floor(viewport.height);
-                var ctx = canvas.getContext("2d");
-                page.render({ canvasContext: ctx, viewport: viewport }).promise
-                  .then(function () { pdfRender.appendChild(canvas); loadOne(i + 1); })
-                  .catch(function () { loadOne(i + 1); });
-              }).catch(function () { loadOne(i + 1); });
-            };
-            loadOne(1);
-          })
-          .catch(function (err) {
-            die("🔒", "Cannot open drawing",
-                "The PDF could not be rendered. Details: " + String((err && err.message) || err));
-          });
-      }
-    })();
-  </script>
+  <script src="viewer.js"></script>
 </body>
 </html>
