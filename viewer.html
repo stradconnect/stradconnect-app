@@ -18,6 +18,7 @@
   .btn-hide { background: #edf2f7; color: #2d3748; }
   .btn-hide:hover { background: #e2e8f0; }
   .frame-wrap { height: calc(100vh - 52px); }
+  #viewerWrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
   .msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 24px; gap: 14px; }
   .msg h2 { font-size: 20px; color: #2d3748; }
   .msg p { font-size: 13px; color: #718096; max-width: 440px; line-height: 1.6; }
@@ -37,7 +38,7 @@
   .vbar .status { font-size: 11px; color: #718096; white-space: nowrap; }
 
   /* Pages */
-  .pdf-render { overflow: auto; background: #525659; height: calc(100% - 42px); cursor: grab; user-select: none; touch-action: none; }
+  .pdf-render { flex: 1 1 auto; overflow: auto; background: #525659; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y; }
   .pdf-render.dragging { cursor: grabbing; }
   .page { position: relative; margin: 12px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.4); background: #ffffff; }
   .page canvas { display: block; }

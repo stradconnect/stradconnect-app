@@ -115,7 +115,7 @@
         return chain;
       })
       .then(function () {
-        viewerWrap.style.display = "block";
+        viewerWrap.style.display = "flex";
         pageNoEl.textContent = "1 / " + pdfDoc.numPages;
         currentPage = 1;
         fitMode = "width";
@@ -192,6 +192,7 @@
     canvas.height = Math.floor(viewport.height * dpr);
     canvas.style.width = viewport.width + "px";
     canvas.style.height = viewport.height + "px";
+    canvas.setAttribute("draggable", "false");
     pageEl.appendChild(canvas);
 
     var textLayer = document.createElement("div");
@@ -274,26 +275,25 @@
     });
 
     pdfRender.addEventListener("pointerdown", function (e) {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.pointerType !== "mouse") return;
+      if (e.button !== 0) return;
       drag.active = true;
       drag.x = e.clientX; drag.y = e.clientY;
       drag.sl = pdfRender.scrollLeft; drag.st = pdfRender.scrollTop;
       pdfRender.classList.add("dragging");
-      try { pdfRender.setPointerCapture(e.pointerId); } catch (err) {}
-      e.preventDefault();
     });
     pdfRender.addEventListener("pointermove", function (e) {
-      if (!drag.active) return;
+      if (!drag.active || e.pointerType !== "mouse") return;
       pdfRender.scrollLeft = drag.sl - (e.clientX - drag.x);
       pdfRender.scrollTop = drag.st - (e.clientY - drag.y);
     });
-    function endDrag(e) {
+    function endDrag() {
       drag.active = false;
       pdfRender.classList.remove("dragging");
-      if (e && e.pointerId) { try { pdfRender.releasePointerCapture(e.pointerId); } catch (err) {} }
     }
     pdfRender.addEventListener("pointerup", endDrag);
     pdfRender.addEventListener("pointercancel", endDrag);
+    pdfRender.addEventListener("pointerleave", endDrag);
 
     pdfRender.addEventListener("scroll", function () {
       var mid = pdfRender.scrollTop + pdfRender.clientHeight / 2;
@@ -306,13 +306,27 @@
         }
       }
     });
+
+    window.addEventListener("keydown", function (e) {
+      if (e.target && e.target.tagName === "INPUT") return;
+      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+        if (currentPage < pdfDoc.numPages) { currentPage++; scrollToPage(currentPage); }
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        if (currentPage > 1) { currentPage--; scrollToPage(currentPage); }
+      }
+    });
   }
 
   function scrollToPage(n) {
     var pages = pdfRender.querySelectorAll(".page");
     if (pages[n - 1]) {
-      var target = pages[n - 1].offsetTop - 10;
-      pdfRender.scrollTo({ top: target, behavior: "smooth" });
+      var target = pages[n - 1].offsetTop - 8;
+      if (target < 0) target = 0;
+      try {
+        pdfRender.scrollTo({ top: target, behavior: "smooth" });
+      } catch (err) {
+        pdfRender.scrollTop = target;
+      }
       currentPage = n;
       pageNoEl.textContent = currentPage + " / " + pdfDoc.numPages;
     }
