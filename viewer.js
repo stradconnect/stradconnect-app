@@ -88,6 +88,7 @@
   var dpr = window.devicePixelRatio || 1;
   var currentPage = 1;
   var fitMode = "width";        // width | page | none
+  var rotation = 0;             // 0 | 90 | 180 | 270
   var drag = { active: false, x: 0, y: 0, sl: 0, st: 0 };
   var searchMatches = [];
   var searchIdx = -1;
@@ -139,12 +140,13 @@
   function computeFitScale() {
     var base = pageData[1];
     if (!base) return 1;
+    var vp = base.page.getViewport({ scale: 1, rotation: rotation });
     if (fitMode === "width") {
-      return Math.max(0.1, pageCanvasWidth() / base.w1);
+      return Math.max(0.1, pageCanvasWidth() / vp.width);
     }
     if (fitMode === "page") {
-      var s1 = pageCanvasWidth() / base.w1;
-      var s2 = pageCanvasHeight() / base.h1;
+      var s1 = pageCanvasWidth() / vp.width;
+      var s2 = pageCanvasHeight() / vp.height;
       return Math.max(0.1, Math.min(s1, s2));
     }
     return null;
@@ -178,7 +180,7 @@
     }
     if (!scale || scale <= 0) scale = 1;
 
-    var viewport = pd.page.getViewport({ scale: scale });
+    var viewport = pd.page.getViewport({ scale: scale, rotation: rotation });
 
     var pageEl = document.createElement("div");
     pageEl.className = "page";
@@ -251,6 +253,11 @@
     document.getElementById("actualSize").onclick = function () {
       setZoom(100);
     };
+    document.getElementById("rotateBtn").onclick = function () {
+      rotation = (rotation + 90) % 360;
+      if (fitMode !== "none") { applyFit(true); }
+      renderAll();
+    };
 
     searchInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") doSearch();
@@ -266,24 +273,27 @@
       }, 200);
     });
 
-    pdfRender.addEventListener("mousedown", function (e) {
-      if (e.button === 0) {
-        drag.active = true;
-        drag.x = e.clientX; drag.y = e.clientY;
-        drag.sl = pdfRender.scrollLeft; drag.st = pdfRender.scrollTop;
-        pdfRender.classList.add("dragging");
-        e.preventDefault();
-      }
+    pdfRender.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      drag.active = true;
+      drag.x = e.clientX; drag.y = e.clientY;
+      drag.sl = pdfRender.scrollLeft; drag.st = pdfRender.scrollTop;
+      pdfRender.classList.add("dragging");
+      try { pdfRender.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
     });
-    window.addEventListener("mousemove", function (e) {
+    pdfRender.addEventListener("pointermove", function (e) {
       if (!drag.active) return;
       pdfRender.scrollLeft = drag.sl - (e.clientX - drag.x);
       pdfRender.scrollTop = drag.st - (e.clientY - drag.y);
     });
-    window.addEventListener("mouseup", function () {
+    function endDrag(e) {
       drag.active = false;
       pdfRender.classList.remove("dragging");
-    });
+      if (e && e.pointerId) { try { pdfRender.releasePointerCapture(e.pointerId); } catch (err) {} }
+    }
+    pdfRender.addEventListener("pointerup", endDrag);
+    pdfRender.addEventListener("pointercancel", endDrag);
 
     pdfRender.addEventListener("scroll", function () {
       var mid = pdfRender.scrollTop + pdfRender.clientHeight / 2;
