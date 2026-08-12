@@ -2748,7 +2748,13 @@ document.body.addEventListener("click", function(event) {
   button.disabled = true;
   button.textContent = "...";
 
-  function sendInviteEmail() {
+  function sendInviteEmail(afterDone) {
+    var doneCalled = false;
+    function finishInviteSend() {
+      if (doneCalled) return;
+      doneCalled = true;
+      if (typeof afterDone === "function") afterDone();
+    }
     var generatedJoinLink = APP_BASE_URL + "/dashboard.html?accept_invite=" + currentActiveProjectId;
     var projectName = currentProjectData ? currentProjectData.name : "the project";
     var cleanDiscName = String(disciplineName).replace(/^\d+_\s*/, "");
@@ -2758,6 +2764,7 @@ document.body.addEventListener("click", function(event) {
       var token = (s && s.data.session) ? s.data.session.access_token : "";
       if (!token) {
         alert("✉️ Invitation recorded! Share this link manually:\n" + generatedJoinLink);
+        finishInviteSend();
         return;
       }
       fetch(edgeFunctionUrl, {
@@ -2769,12 +2776,15 @@ document.body.addEventListener("click", function(event) {
       .then(function(result) {
         if (result.error) throw new Error(result.error);
         alert("✉️ Invitation sent to " + emailValue);
+        finishInviteSend();
       })
       .catch(function() {
         alert("✉️ Invitation recorded! Email service unavailable. Share this link manually:\n" + generatedJoinLink);
+        finishInviteSend();
       });
     }).catch(function() {
       alert("✉️ Invitation recorded! Share this link manually:\n" + generatedJoinLink);
+      finishInviteSend();
     });
 
     button.textContent = "Sent";
@@ -2815,7 +2825,9 @@ document.body.addEventListener("click", function(event) {
       .then(function(res) {
         if (res.error) throw res.error;
         markInviteSent(disciplineId);
-        sendInviteEmail();
+        sendInviteEmail(function() {
+          if (currentActiveProjectId) loadProjectWorkspaceDashboard(currentActiveProjectId);
+        });
       })
       .catch(function(err) {
         console.error(err);
@@ -3036,11 +3048,6 @@ function subscribeToLiveUpdates() {
       event: "DELETE",
       schema: "public",
       table: "drawing_comments"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "project_invitations"
     }, function() { handleLiveChange(); })
     .on("postgres_changes", {
       event: "UPDATE",
