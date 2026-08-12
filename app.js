@@ -1034,6 +1034,7 @@ function fetchAndRenderHubProjects() {
     currentUserId = String(userRes.data.user.id);
     setupPushNotifications();
     subscribeToNotifications();
+    subscribeToLiveUpdates();
     refreshPushEnableButton();
     return currentLogUser;
   })
@@ -2821,6 +2822,7 @@ var notifChannel = null;
 var notifPanelOpen = false;
 var currentNotifProjectId = null;
 var currentNotifMuted = false;
+var liveRefreshTimer = null;
 
 function countUnreadNotifications() {
   var c = 0;
@@ -2967,6 +2969,85 @@ function subscribeToNotifications() {
       updateHubBadgeOnNotify(row);
     })
     .subscribe();
+}
+
+// =========================================================================
+// 🔴 LIVE WORKSPACE UPDATES — refresh open views when another member
+// uploads a file, posts a comment, or projects/invites change.
+// =========================================================================
+var liveUpdatesSubscribed = false;
+function subscribeToLiveUpdates() {
+  if (!supabase || !currentUserId || liveUpdatesSubscribed) return;
+  liveUpdatesSubscribed = true;
+
+  function handleLiveChange() {
+    if (liveRefreshTimer) return;
+    liveRefreshTimer = setTimeout(function() {
+      liveRefreshTimer = null;
+      liveRefreshOpenViews();
+    }, 800);
+  }
+
+  supabase.channel("stradconnect-live")
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "project_drawings"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "UPDATE",
+      schema: "public",
+      table: "project_drawings"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "DELETE",
+      schema: "public",
+      table: "project_drawings"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "drawing_comments"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "UPDATE",
+      schema: "public",
+      table: "drawing_comments"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "DELETE",
+      schema: "public",
+      table: "drawing_comments"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "project_invitations"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "UPDATE",
+      schema: "public",
+      table: "project_invitations"
+    }, function() { handleLiveChange(); })
+    .on("postgres_changes", {
+      event: "UPDATE",
+      schema: "public",
+      table: "projects"
+    }, function() { handleLiveChange(); })
+    .subscribe();
+}
+
+function liveRefreshOpenViews() {
+  if (!supabase || !currentUserId) return;
+  var refreshHub = typeof fetchAndRenderHubProjects === "function";
+  var refreshWorkspace = typeof loadProjectWorkspaceDashboard === "function" && currentActiveProjectId;
+
+  if (refreshHub) fetchAndRenderHubProjects();
+
+  if (refreshWorkspace) {
+    var pid = currentActiveProjectId;
+    loadProjectWorkspaceDashboard(pid);
+  }
 }
 
 function updateHubBadgeOnNotify(row) {
