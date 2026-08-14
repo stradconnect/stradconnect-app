@@ -1034,7 +1034,6 @@ function fetchAndRenderHubProjects() {
     currentUserId = String(userRes.data.user.id);
     setupPushNotifications();
     subscribeToNotifications();
-    subscribeToLiveUpdates();
     refreshPushEnableButton();
     return currentLogUser;
   })
@@ -2700,16 +2699,6 @@ if (createButton) {
 // =========================================================================
 // ✉️ DISPATCH INVITATION LINK PIPELINE WITH AUTO-RESET STATE
 // =========================================================================
-var lastInviteSendAt = {};
-function isInviteRecentlySent(disciplineId) {
-  var key = String(disciplineId);
-  var last = lastInviteSendAt[key] || 0;
-  return (Date.now() - last) < 60000;
-}
-function markInviteSent(disciplineId) {
-  lastInviteSendAt[String(disciplineId)] = Date.now();
-}
-
 document.body.addEventListener("click", function(event) {
   var editInviteIcon = event.target.closest(".dash-card-edit-invite");
   if (editInviteIcon) {
@@ -2732,12 +2721,6 @@ document.body.addEventListener("click", function(event) {
   var isResend = !!resendBtn;
   var disciplineId = button.dataset.discId;
   var disciplineName = button.dataset.discName;
-
-  if (isInviteRecentlySent(disciplineId)) {
-    alert("An invitation to this discipline was just sent. Please wait about a minute before sending again.");
-    return;
-  }
-
   var emailValue = isResend ? button.dataset.discEmail : (document.querySelector("#dash_invite_" + disciplineId) ? document.querySelector("#dash_invite_" + disciplineId).value.trim().toLowerCase() : "");
 
   if (!emailValue) {
@@ -2748,13 +2731,7 @@ document.body.addEventListener("click", function(event) {
   button.disabled = true;
   button.textContent = "...";
 
-  function sendInviteEmail(afterDone) {
-    var doneCalled = false;
-    function finishInviteSend() {
-      if (doneCalled) return;
-      doneCalled = true;
-      if (typeof afterDone === "function") afterDone();
-    }
+  function sendInviteEmail() {
     var generatedJoinLink = APP_BASE_URL + "/dashboard.html?accept_invite=" + currentActiveProjectId;
     var projectName = currentProjectData ? currentProjectData.name : "the project";
     var cleanDiscName = String(disciplineName).replace(/^\d+_\s*/, "");
@@ -2764,7 +2741,6 @@ document.body.addEventListener("click", function(event) {
       var token = (s && s.data.session) ? s.data.session.access_token : "";
       if (!token) {
         alert("✉️ Invitation recorded! Share this link manually:\n" + generatedJoinLink);
-        finishInviteSend();
         return;
       }
       fetch(edgeFunctionUrl, {
@@ -2776,15 +2752,12 @@ document.body.addEventListener("click", function(event) {
       .then(function(result) {
         if (result.error) throw new Error(result.error);
         alert("✉️ Invitation sent to " + emailValue);
-        finishInviteSend();
       })
       .catch(function() {
         alert("✉️ Invitation recorded! Email service unavailable. Share this link manually:\n" + generatedJoinLink);
-        finishInviteSend();
       });
     }).catch(function() {
       alert("✉️ Invitation recorded! Share this link manually:\n" + generatedJoinLink);
-      finishInviteSend();
     });
 
     button.textContent = "Sent";
@@ -2811,7 +2784,6 @@ document.body.addEventListener("click", function(event) {
   }
 
   if (isResend) {
-    markInviteSent(disciplineId);
     sendInviteEmail();
   } else {
     supabase
@@ -2824,10 +2796,7 @@ document.body.addEventListener("click", function(event) {
       }])
       .then(function(res) {
         if (res.error) throw res.error;
-        markInviteSent(disciplineId);
-        sendInviteEmail(function() {
-          if (currentActiveProjectId) loadProjectWorkspaceDashboard(currentActiveProjectId);
-        });
+        sendInviteEmail();
       })
       .catch(function(err) {
         console.error(err);
@@ -2852,7 +2821,6 @@ var notifChannel = null;
 var notifPanelOpen = false;
 var currentNotifProjectId = null;
 var currentNotifMuted = false;
-var liveRefreshTimer = null;
 
 function countUnreadNotifications() {
   var c = 0;
@@ -2999,80 +2967,6 @@ function subscribeToNotifications() {
       updateHubBadgeOnNotify(row);
     })
     .subscribe();
-}
-
-// =========================================================================
-// 🔴 LIVE WORKSPACE UPDATES — refresh open views when another member
-// uploads a file, posts a comment, or projects/invites change.
-// =========================================================================
-var liveUpdatesSubscribed = false;
-function subscribeToLiveUpdates() {
-  if (!supabase || !currentUserId || liveUpdatesSubscribed) return;
-  liveUpdatesSubscribed = true;
-
-  function handleLiveChange() {
-    if (liveRefreshTimer) return;
-    liveRefreshTimer = setTimeout(function() {
-      liveRefreshTimer = null;
-      liveRefreshOpenViews();
-    }, 800);
-  }
-
-  supabase.channel("stradconnect-live")
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "project_drawings"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "project_drawings"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "DELETE",
-      schema: "public",
-      table: "project_drawings"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "drawing_comments"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "drawing_comments"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "DELETE",
-      schema: "public",
-      table: "drawing_comments"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "project_invitations"
-    }, function() { handleLiveChange(); })
-    .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "projects"
-    }, function() { handleLiveChange(); })
-    .subscribe();
-}
-
-function liveRefreshOpenViews() {
-  if (!supabase || !currentUserId) return;
-  var refreshHub = typeof fetchAndRenderHubProjects === "function";
-  var refreshWorkspace = typeof loadProjectWorkspaceDashboard === "function" && currentActiveProjectId;
-
-  if (refreshHub) fetchAndRenderHubProjects();
-
-  if (refreshWorkspace) {
-    var pid = currentActiveProjectId;
-    loadProjectWorkspaceDashboard(pid);
-  }
 }
 
 function updateHubBadgeOnNotify(row) {
