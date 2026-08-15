@@ -2644,7 +2644,8 @@ if (createButton) {
           cabin_count: cabins,
           has_ground_floor: true,
           status: "Active",
-          user_id: user.id, 
+          user_id: user.id,
+          owner_email: (user.email || "").toLowerCase(),
           project_config: { joining_as: joiningAs }
         }]).select();
       })
