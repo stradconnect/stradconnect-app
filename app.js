@@ -2634,20 +2634,33 @@ if (createButton) {
         }
         var user = userRes.data.user;
 
-        return supabase.from("projects").insert([{
-          name: projectName,
-          location: location,
-          project_type: projectType,
-          basement_count: basements,
-          podium_count: podiums,
-          floor_count: floors,
-          cabin_count: cabins,
-          has_ground_floor: true,
-          status: "Active",
-          user_id: user.id,
-          owner_email: (user.email || "").toLowerCase(),
-          project_config: { joining_as: joiningAs }
-        }]).select();
+        // Resolve owner_email straight from the JWT "email" claim so it always
+        // matches app_current_email() used by the RLS policies (auth.uid()/user.email
+        // can be unreliable for some accounts).
+        return supabase.auth.getSession().then(function(sessRes) {
+          var token = (sessRes && sessRes.data && sessRes.data.session) ? sessRes.data.session.access_token : "";
+          var jwtEmail = "";
+          try {
+            var payload = JSON.parse(atob(token.split(".")[1]));
+            jwtEmail = (payload.email || "").toLowerCase();
+          } catch (e) { jwtEmail = ""; }
+          var ownerEmail = jwtEmail || (user.email || "").toLowerCase();
+
+          return supabase.from("projects").insert([{
+            name: projectName,
+            location: location,
+            project_type: projectType,
+            basement_count: basements,
+            podium_count: podiums,
+            floor_count: floors,
+            cabin_count: cabins,
+            has_ground_floor: true,
+            status: "Active",
+            user_id: user.id,
+            owner_email: ownerEmail,
+            project_config: { joining_as: joiningAs }
+          }]).select();
+        });
       })
       .then(function(result) {
         if (result.error) throw result.error;
