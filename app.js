@@ -1061,7 +1061,7 @@ function fetchAndRenderHubProjects() {
 
     return Promise.all([
       supabase.from("projects").select("*").eq("status", "Active").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("project_invitations").select("project_id").eq("email", user.email).eq("status", "Accepted"),
+      supabase.from("project_invitations").select("project_id").eq("email", user.email.toLowerCase().trim()).eq("status", "Accepted"),
       supabase.from("project_disciplines").select("project_id"),
       supabase.from("project_drawings").select("project_id, created_at").order("created_at", { ascending: false }),
       supabase.from("project_invitations").select("project_id, email").eq("status", "Accepted"),
@@ -2835,7 +2835,7 @@ document.body.addEventListener("click", function(event) {
         .upsert([{
           project_id: currentActiveProjectId,
           discipline_id: disciplineId,
-          email: emailValue,
+          email: emailValue.toLowerCase().trim(),
           status: "Pending"
         }], { onConflict: "project_id,email,discipline_id" })
         .then(function(res) {
@@ -3523,7 +3523,7 @@ function handleInboundUrlInvitations() {
         .from("project_invitations")
         .update({ status: "Accepted" })
         .eq("project_id", inviteProjectId)
-        .eq("email", cleanSessionEmail)
+        .ilike("email", cleanSessionEmail)
         .eq("status", "Pending")
         .select()
         .then(function(updateRes) {
@@ -3537,7 +3537,7 @@ function handleInboundUrlInvitations() {
               body: cleanSessionEmail + " accepted the invitation and joined the workspace."
             });
           } else {
-            return supabase.from("project_invitations").select("id").eq("project_id", inviteProjectId).eq("email", cleanSessionEmail).eq("status", "Accepted")
+            return supabase.from("project_invitations").select("id").eq("project_id", inviteProjectId).ilike("email", cleanSessionEmail).eq("status", "Accepted")
               .then(function(checkRes) {
                 if (checkRes.data && checkRes.data.length > 0) {
                   alert("ℹ️ Network Connection Active: You are already a synchronized peer in this grid space.");
