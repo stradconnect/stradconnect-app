@@ -187,6 +187,7 @@ select {
 
 main {
   padding: 28px;
+  padding-bottom: 76px;
   min-width: 0;
 }
 
@@ -1288,5 +1289,43 @@ select {
   #dashActivityFeedPanel,
   #dashCommentsFeedPanel {
     max-height: 200px !important;
+  }
+
+  /* =========================================================================
+     🏁 DASHBOARD FIXED FOOTER (matches landing page panel)
+     ========================================================================= */
+  .app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 260px;
+    right: 0;
+    background: #0f2a22;
+    color: #9fb8ae;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: nowrap;
+    font-size: 12.5px;
+    border-top: 1px solid rgba(239, 183, 90, 0.25);
+    z-index: 50;
+  }
+  .app-footer {
+    box-sizing: border-box;
+  }
+  .app-footer .app-footer-brand { color: #ffffff; font-weight: 800; white-space: nowrap; }
+  .app-footer .foot-links { display: flex; gap: 22px; }
+  .app-footer .foot-links a { color: #9fb8ae; font-weight: 600; text-decoration: none; }
+  .app-footer .foot-links a:hover { color: var(--gold); }
+  .app-footer .app-footer-copy { white-space: nowrap; }
+
+  @media (max-width: 768px) {
+    .app-footer {
+      left: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      text-align: center;
+    }
   }
 }
