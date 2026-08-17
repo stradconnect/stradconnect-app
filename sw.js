@@ -1,4 +1,4 @@
-var CACHE = "stradconnect-v2";
+var CACHE = "stradconnect-v3";
 
 var CORE_ASSETS = [
   "./",
@@ -95,15 +95,16 @@ self.addEventListener("fetch", function (event) {
   }
 
   event.respondWith(
-    caches.match(req).then(function (cached) {
-      if (cached) return cached;
-      return fetch(req).then(function (res) {
+    fetch(req)
+      .then(function (res) {
         if (res && res.status === 200 && url.origin === location.origin) {
           var copy = res.clone();
           caches.open(CACHE).then(function (c) { c.put(req, copy); });
         }
         return res;
-      });
-    })
+      })
+      .catch(function () {
+        return caches.match(req);
+      })
   );
 });
