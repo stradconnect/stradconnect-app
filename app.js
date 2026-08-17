@@ -334,6 +334,11 @@ var closeProfileModalBtn = document.querySelector("#closeProfileModalBtn");
 var profileModalCompany = document.querySelector("#profileModalCompany");
 var profileModalName = document.querySelector("#profileModalName");
 var profileModalEmail = document.querySelector("#profileModalEmail");
+var btnEditProfile = document.querySelector("#btnEditProfile");
+var btnSaveProfile = document.querySelector("#btnSaveProfile");
+var btnCancelProfile = document.querySelector("#btnCancelProfile");
+var profileModalCompanyInput = document.querySelector("#profileModalCompanyInput");
+var profileModalNameInput = document.querySelector("#profileModalNameInput");
 
 var currentActiveProjectId = null;
 var currentProjectData = null;
@@ -906,6 +911,61 @@ if (btnOpenProfile) {
 if (closeProfileModalBtn) {
   closeProfileModalBtn.addEventListener("click", function() {
     if (profileModalOverlay) profileModalOverlay.style.display = "none";
+  });
+}
+
+function enterProfileEdit() {
+  if (!currentSessionProfile) return;
+  if (profileModalCompanyInput) profileModalCompanyInput.value = currentSessionProfile.companyName || "";
+  if (profileModalNameInput) profileModalNameInput.value = currentSessionProfile.fullName || "";
+  if (profileModalCompany) profileModalCompany.style.display = "none";
+  if (profileModalName) profileModalName.style.display = "none";
+  if (profileModalCompanyInput) profileModalCompanyInput.style.display = "block";
+  if (profileModalNameInput) profileModalNameInput.style.display = "block";
+  if (btnEditProfile) btnEditProfile.style.display = "none";
+  if (btnSaveProfile) btnSaveProfile.style.display = "inline-block";
+  if (btnCancelProfile) btnCancelProfile.style.display = "inline-block";
+}
+
+function exitProfileEdit(restore) {
+  if (profileModalCompany) profileModalCompany.style.display = "block";
+  if (profileModalName) profileModalName.style.display = "block";
+  if (profileModalCompanyInput) profileModalCompanyInput.style.display = "none";
+  if (profileModalNameInput) profileModalNameInput.style.display = "none";
+  if (btnEditProfile) btnEditProfile.style.display = "inline-block";
+  if (btnSaveProfile) btnSaveProfile.style.display = "none";
+  if (btnCancelProfile) btnCancelProfile.style.display = "none";
+  if (restore) updateProfileUi(currentSessionProfile);
+}
+
+if (btnEditProfile) {
+  btnEditProfile.addEventListener("click", enterProfileEdit);
+}
+if (btnCancelProfile) {
+  btnCancelProfile.addEventListener("click", function() { exitProfileEdit(true); });
+}
+if (btnSaveProfile) {
+  btnSaveProfile.addEventListener("click", function() {
+    if (!supabase || !currentUserId) return;
+    var newCompany = (profileModalCompanyInput && profileModalCompanyInput.value || "").trim();
+    var newName = (profileModalNameInput && profileModalNameInput.value || "").trim();
+    btnSaveProfile.disabled = true;
+    supabase.from("profiles").update({ full_name: newName, company_name: newCompany })
+      .eq("id", currentUserId)
+      .then(function(r) {
+        if (r.error) throw r.error;
+        updateProfileUi({ email: currentSessionProfile.email, fullName: newName, companyName: newCompany });
+        exitProfileEdit(false);
+        if (typeof loadProjectWorkspaceDashboard === "function" && currentActiveProjectId) {
+          loadProjectWorkspaceDashboard(currentActiveProjectId);
+        }
+        alert("Profile updated.");
+      })
+      .catch(function(err) {
+        console.error(err);
+        alert("Failed to update profile: " + (err.message || err));
+      })
+      .finally(function() { btnSaveProfile.disabled = false; });
   });
 }
 

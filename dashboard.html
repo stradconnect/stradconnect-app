@@ -267,6 +267,15 @@
           </div>
         </div>
       </section>
+
+      <footer style="margin-top:40px; padding:24px 18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; text-align:center;">
+        <div style="font-weight:800; color:var(--ink);">STRAD CONNECT &nbsp;·&nbsp; CONNECT.COORDINATE.BUILD</div>
+        <div style="display:flex; gap:22px; justify-content:center; margin-top:10px;">
+          <a href="agreement.html" style="color:var(--blue); font-weight:600;">User Agreement</a>
+          <a href="privacy.html" style="color:var(--blue); font-weight:600;">Privacy Policy</a>
+        </div>
+        <div style="margin-top:10px;">&copy; 2026 STRAD CONNECT.</div>
+      </footer>
     </main>
 
     <div id="notifToastContainer" class="notif-toast-container"></div>
@@ -406,15 +415,22 @@
             <div>
               <span>Company</span>
               <strong id="profileModalCompany">-</strong>
+              <input type="text" id="profileModalCompanyInput" class="profile-edit-input" style="display:none;" />
             </div>
             <div>
               <span>Full Name</span>
               <strong id="profileModalName">-</strong>
+              <input type="text" id="profileModalNameInput" class="profile-edit-input" style="display:none;" />
             </div>
             <div>
               <span>Email</span>
               <strong id="profileModalEmail">-</strong>
             </div>
+          </div>
+          <div class="profile-modal-actions" style="display:flex; gap:10px; margin-top:18px;">
+            <button type="button" id="btnEditProfile" style="min-height:40px; padding:0 16px; background:var(--blue); color:#fff; border:0; border-radius:6px; font-weight:700; cursor:pointer;">Edit Profile</button>
+            <button type="button" id="btnSaveProfile" class="modal-submit-btn" style="display:none;">Save Changes</button>
+            <button type="button" id="btnCancelProfile" style="min-height:40px; padding:0 16px; background:#e2e8f0; color:#1a1a1a; border:0; border-radius:6px; font-weight:700; cursor:pointer; display:none;">Cancel</button>
           </div>
         </div>
       </div>
