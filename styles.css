@@ -199,6 +199,18 @@ main {
   margin-bottom: 20px;
 }
 
+/* Match dashboard hub/create headers to the panelled project header size */
+#viewHub .topbar,
+#viewCreation .topbar {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 90px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--green);
