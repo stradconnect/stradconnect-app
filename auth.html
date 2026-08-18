@@ -401,6 +401,7 @@
           </div>
         </div>
 
+        <div id="authError" style="color:#c93b2b; font-size:13px; margin:0 0 12px; min-height:16px;"></div>
         <button type="submit" id="btnAuthSubmit" class="btn-auth-submit">Sign In to Dashboard</button>
 
         <p class="auth-consent">
@@ -757,22 +758,15 @@ btnCreateAccount.addEventListener("click", function() {
     });
 });
 
-// ===== ELEMENTS & VALIDATION =====
-const authForm = document.getElementById("authForm");
-const btnAuthSubmit = document.getElementById("btnAuthSubmit");
+// ===== LOGIN LOGIC (updated) =====
 const authEmailInput = document.getElementById("authEmail");
 const authPasswordInput = document.getElementById("authPassword");
-
-// Optional: Element to show inline errors (recommended over window.alert)
 const authErrorEl = document.getElementById("authError");
 
-// ===== LOGIN LOGIC =====
 if (authForm) {
   authForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    // 1. Guard against missing Supabase instance
-    // Note: If using the CDN script, ensure your client is defined (e.g. const supabase = supabase.createClient(...))
     if (typeof supabase === "undefined" || !supabase) {
       console.error("Supabase client is not initialized.");
       alert("System configuration error: Authentication service is unavailable.");
@@ -787,7 +781,6 @@ if (authForm) {
       return;
     }
 
-    // 2. Set UI Loading State
     if (btnAuthSubmit) {
       btnAuthSubmit.disabled = true;
       btnAuthSubmit.textContent = "Processing...";
@@ -795,7 +788,6 @@ if (authForm) {
     if (authErrorEl) authErrorEl.textContent = "";
 
     try {
-      // 3. Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -803,10 +795,8 @@ if (authForm) {
 
       if (error) throw error;
 
-      // 4. Successful Authentication -> Redirect
       window.location.href = "dashboard.html";
     } catch (err) {
-      // 5. Handle and Normalize Supabase Errors
       console.error("Supabase Auth Error:", err);
 
       let userMsg = "Sign in failed. Please check your credentials.";
@@ -828,7 +818,6 @@ if (authForm) {
         alert(userMsg);
       }
     } finally {
-      // 6. Reset UI State
       if (btnAuthSubmit) {
         btnAuthSubmit.disabled = false;
         btnAuthSubmit.textContent = "Sign In to Dashboard";
