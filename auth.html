@@ -757,30 +757,85 @@ btnCreateAccount.addEventListener("click", function() {
     });
 });
 
+// ===== ELEMENTS & VALIDATION =====
+const authForm = document.getElementById("authForm");
+const btnAuthSubmit = document.getElementById("btnAuthSubmit");
+const authEmailInput = document.getElementById("authEmail");
+const authPasswordInput = document.getElementById("authPassword");
+
+// Optional: Element to show inline errors (recommended over window.alert)
+const authErrorEl = document.getElementById("authError");
+
 // ===== LOGIN LOGIC =====
-authForm.addEventListener("submit", function(e) {
-  e.preventDefault();
-  if (!supabase) return;
+if (authForm) {
+  authForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-  var email = document.getElementById("authEmail").value.trim();
-  var password = document.getElementById("authPassword").value;
+    // 1. Guard against missing Supabase instance
+    // Note: If using the CDN script, ensure your client is defined (e.g. const supabase = supabase.createClient(...))
+    if (typeof supabase === "undefined" || !supabase) {
+      console.error("Supabase client is not initialized.");
+      alert("System configuration error: Authentication service is unavailable.");
+      return;
+    }
 
-  btnAuthSubmit.disabled = true;
-  btnAuthSubmit.textContent = "Processing...";
+    const email = authEmailInput ? authEmailInput.value.trim() : "";
+    const password = authPasswordInput ? authPasswordInput.value : "";
 
-  supabase.auth.signInWithPassword({ email: email, password: password })
-    .then(function(res) {
-      if (res.error) throw res.error;
+    if (!email || !password) {
+      alert("Please enter both email and password.");
+      return;
+    }
+
+    // 2. Set UI Loading State
+    if (btnAuthSubmit) {
+      btnAuthSubmit.disabled = true;
+      btnAuthSubmit.textContent = "Processing...";
+    }
+    if (authErrorEl) authErrorEl.textContent = "";
+
+    try {
+      // 3. Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      // 4. Successful Authentication -> Redirect
       window.location.href = "dashboard.html";
-    })
-    .catch(function(err) {
-      alert("Sign In Failed: " + err.message);
-    })
-    .then(function() {
-      btnAuthSubmit.disabled = false;
-      btnAuthSubmit.textContent = "Sign In to Dashboard";
-    });
-});
+    } catch (err) {
+      // 5. Handle and Normalize Supabase Errors
+      console.error("Supabase Auth Error:", err);
+
+      let userMsg = "Sign in failed. Please check your credentials.";
+      const errMsg = (err.message || "").toLowerCase();
+
+      if (errMsg.includes("invalid login credentials")) {
+        userMsg = "Invalid email or password. Please try again.";
+      } else if (errMsg.includes("email not confirmed")) {
+        userMsg = "Please confirm your email address before signing in.";
+      } else if (err.status === 429) {
+        userMsg = "Too many attempts. Please wait a few minutes before trying again.";
+      } else if (errMsg.includes("fetch")) {
+        userMsg = "Network error. Please check your internet connection.";
+      }
+
+      if (authErrorEl) {
+        authErrorEl.textContent = userMsg;
+      } else {
+        alert(userMsg);
+      }
+    } finally {
+      // 6. Reset UI State
+      if (btnAuthSubmit) {
+        btnAuthSubmit.disabled = false;
+        btnAuthSubmit.textContent = "Sign In to Dashboard";
+      }
+    }
+  });
+}
 
 // ===== FORGOT PASSWORD OTP FLOW =====
 btnSendForgotOtp.addEventListener("click", function() {
