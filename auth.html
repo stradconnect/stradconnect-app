@@ -401,7 +401,6 @@
           </div>
         </div>
 
-        <div id="authError" style="color:#c93b2b; font-size:13px; margin:0 0 12px; min-height:16px;"></div>
         <button type="submit" id="btnAuthSubmit" class="btn-auth-submit">Sign In to Dashboard</button>
 
         <p class="auth-consent">
@@ -758,73 +757,30 @@ btnCreateAccount.addEventListener("click", function() {
     });
 });
 
-// ===== LOGIN LOGIC (updated) =====
-const authEmailInput = document.getElementById("authEmail");
-const authPasswordInput = document.getElementById("authPassword");
-const authErrorEl = document.getElementById("authError");
+// ===== LOGIN LOGIC =====
+authForm.addEventListener("submit", function(e) {
+  e.preventDefault();
+  if (!supabase) return;
 
-if (authForm) {
-  authForm.addEventListener("submit", async function (e) {
-    e.preventDefault();
+  var email = document.getElementById("authEmail").value.trim();
+  var password = document.getElementById("authPassword").value;
 
-    if (typeof supabase === "undefined" || !supabase) {
-      console.error("Supabase client is not initialized.");
-      alert("System configuration error: Authentication service is unavailable.");
-      return;
-    }
+  btnAuthSubmit.disabled = true;
+  btnAuthSubmit.textContent = "Processing...";
 
-    const email = authEmailInput ? authEmailInput.value.trim() : "";
-    const password = authPasswordInput ? authPasswordInput.value : "";
-
-    if (!email || !password) {
-      alert("Please enter both email and password.");
-      return;
-    }
-
-    if (btnAuthSubmit) {
-      btnAuthSubmit.disabled = true;
-      btnAuthSubmit.textContent = "Processing...";
-    }
-    if (authErrorEl) authErrorEl.textContent = "";
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) throw error;
-
+  supabase.auth.signInWithPassword({ email: email, password: password })
+    .then(function(res) {
+      if (res.error) throw res.error;
       window.location.href = "dashboard.html";
-    } catch (err) {
-      console.error("Supabase Auth Error:", err);
-
-      let userMsg = "Sign in failed. Please check your credentials.";
-      const errMsg = (err.message || "").toLowerCase();
-
-      if (errMsg.includes("invalid login credentials")) {
-        userMsg = "Invalid email or password. Please try again.";
-      } else if (errMsg.includes("email not confirmed")) {
-        userMsg = "Please confirm your email address before signing in.";
-      } else if (err.status === 429) {
-        userMsg = "Too many attempts. Please wait a few minutes before trying again.";
-      } else if (errMsg.includes("fetch")) {
-        userMsg = "Network error. Please check your internet connection.";
-      }
-
-      if (authErrorEl) {
-        authErrorEl.textContent = userMsg;
-      } else {
-        alert(userMsg);
-      }
-    } finally {
-      if (btnAuthSubmit) {
-        btnAuthSubmit.disabled = false;
-        btnAuthSubmit.textContent = "Sign In to Dashboard";
-      }
-    }
-  });
-}
+    })
+    .catch(function(err) {
+      alert("Sign In Failed: " + err.message);
+    })
+    .then(function() {
+      btnAuthSubmit.disabled = false;
+      btnAuthSubmit.textContent = "Sign In to Dashboard";
+    });
+});
 
 // ===== FORGOT PASSWORD OTP FLOW =====
 btnSendForgotOtp.addEventListener("click", function() {
