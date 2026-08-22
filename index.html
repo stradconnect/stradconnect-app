@@ -101,10 +101,13 @@
     .hero .wrap{position:relative;z-index:1}
     .hero .eyebrow{color:var(--gold)}
     h1{max-width:920px;font-size:clamp(39px,6vw,74px);line-height:1.08;margin:22px 0 26px;font-family:"ARIAL", sans-serif;}
-    .hero h1 em{display:block;color:var(--gold);font-style:normal;font-size:50px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin-top: 20px;
-}
-    .hero-copy{max-width:100000px;font-size:20px;line-height:1.7;font-color:#32CD32}
+    .hero h1 em{display:block;color:var(--gold);font-style:normal;font-size:50px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin-top: 20px;}
+    
+    .hero-copy{max-width:100000px;font-size:20px;line-height:1.7;}
+    /* NEW RULE: Targets paragraphs specifically inside .hero-copy to override global p styling */
+    .hero-copy p {color: #fff;}
     .hero-copy p+p{margin-top:14px}
+    
     .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
     .hero-note{margin-top:52px;color:#91a8b0;font-size:15px}
     .hero-note span{color:var(--gold);margin-right:8px}
