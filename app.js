@@ -29,6 +29,10 @@ var disciplines = [
 
 var customDisciplines = [];
 var currentUserId = null;
+var isProjectCreatorAdmin = false;
+var activeUserEmail = "";
+var activeUserId = "";
+var emailToIdMap = {};
 
 var defaultSelected = new Set([
   "Owner",
@@ -93,10 +97,29 @@ var btnTabFolders = document.querySelector("#btnTabFolders");
 var btnTabTeam = document.querySelector("#btnTabTeam");
 var btnTabActivity = document.querySelector("#btnTabActivity");
 var btnTabExport = document.querySelector("#btnTabExport");
+var btnTabRequests = document.querySelector("#btnTabRequests");
 var tabContentFolders = document.querySelector("#tabContentFolders");
 var tabContentTeam = document.querySelector("#tabContentTeam");
 var tabContentActivity = document.querySelector("#tabContentActivity");
 var tabContentExport = document.querySelector("#tabContentExport");
+var tabContentRequests = document.querySelector("#tabContentRequests");
+
+var reqDiscipline = document.querySelector("#reqDiscipline");
+var reqLevel = document.querySelector("#reqLevel");
+var reqTitle = document.querySelector("#reqTitle");
+var reqDescription = document.querySelector("#reqDescription");
+var btnRaiseRequest = document.querySelector("#btnRaiseRequest");
+var btnMyRequests = document.querySelector("#btnMyRequests");
+var reqStatus = document.querySelector("#reqStatus");
+var openRequestsList = document.querySelector("#openRequestsList");
+var closedRequestsList = document.querySelector("#closedRequestsList");
+var openRequestsTitle = document.querySelector("#openRequestsTitle");
+var openRequestsSub = document.querySelector("#openRequestsSub");
+var tabContentMyRequests = document.querySelector("#tabContentMyRequests");
+var myOpenRequestsList = document.querySelector("#myOpenRequestsList");
+var myClosedRequestsList = document.querySelector("#myClosedRequestsList");
+var myOpenTitle = document.querySelector("#myOpenTitle");
+var myOpenSub = document.querySelector("#myOpenSub");
 
 function activateTab(activeBtn, activeContent, others) {
   activeContent.style.display = "block";
@@ -115,7 +138,9 @@ var tabDefs = [
   { btn: btnTabFolders, content: tabContentFolders },
   { btn: btnTabTeam, content: tabContentTeam },
   { btn: btnTabActivity, content: tabContentActivity },
-  { btn: btnTabExport, content: tabContentExport }
+  { btn: btnTabExport, content: tabContentExport },
+  { btn: btnTabRequests, content: tabContentRequests },
+  { btn: btnMyRequests, content: tabContentMyRequests }
 ];
 
 for (var t = 0; t < tabDefs.length; t++) {
@@ -354,12 +379,17 @@ var activeUploadContext = {
   disciplineRole: null
 };
 var isRevisionMode = false;
+var drawingRequestsData = [];
+var drawingRequestCommentsData = [];
+var projectDisciplinesData = [];
 
 // UNIFIED VIEW SHIFTER WITH NAVIGATION CACHE SYNCING
 function showView(target, specificProjectId) {
   if (viewHub) viewHub.style.setProperty("display", target === "hub" ? "block" : "none", "important");
   if (viewCreation) viewCreation.style.setProperty("display", target === "create" ? "block" : "none", "important");
   if (viewDashboard) viewDashboard.style.setProperty("display", target === "dashboard" ? "block" : "none", "important");
+
+  if (target === "dashboard") { try { initDrawingRequests(); } catch (e) { console.error("initDrawingRequests error:", e); } }
 
   if (target !== "dashboard") {
     teardownProjectNotifications();
@@ -1314,10 +1344,7 @@ function loadProjectWorkspaceDashboard(projectId) {
   if (destination) destination.innerHTML = '<p style="padding:20px; color:var(--muted);">Loading secure workspace nodes...</p>';
   if (teamDestination) teamDestination.innerHTML = '';
 
-  var activeUserEmail = "";
-  var activeUserId = "";
-  var isProjectCreatorAdmin = false;
-  var projectInvitationsList = [];
+  projectInvitationsList = [];
   
   // Dictionaries to map profile metadata
   var emailToCompanyMap = {};
@@ -1345,7 +1372,10 @@ function loadProjectWorkspaceDashboard(projectId) {
         var prof = allProfiles[p];
         if (prof) {
           if (prof.id) idToProfileMap[String(prof.id)] = prof;
-          if (prof.email) emailToCompanyMap[prof.email.toLowerCase().trim()] = prof.company_name;
+          if (prof.email) {
+            emailToCompanyMap[prof.email.toLowerCase().trim()] = prof.company_name;
+            emailToIdMap[prof.email.toLowerCase().trim()] = String(prof.id);
+          }
         }
       }
       
@@ -1632,7 +1662,8 @@ function loadProjectWorkspaceDashboard(projectId) {
       
       currentActiveProjectId = projectId;
       showView("dashboard", projectId);
-      renderAllFolderDrawingFeeds(projectId);
+      initDrawingRequests();
+      try { renderAllFolderDrawingFeeds(projectId); } catch (e) { console.error("Folder feeds render error (non-fatal):", e); }
     })
     .catch(function(err) {
       console.error("Workspace Engine Failure:", err);
@@ -1640,6 +1671,446 @@ function loadProjectWorkspaceDashboard(projectId) {
 }
 
 // =========================================================================
+//  DRAWING / UPDATE REQUESTS
+// =========================================================================
+function isPlatformOwnerJS() {
+  return String(activeUserEmail).toLowerCase().trim() === "stradconnect@gmail.com";
+}
+
+function isTargetDisciplineMember(req) {
+  for (var i = 0; i < projectInvitationsList.length; i++) {
+    var inv = projectInvitationsList[i];
+    if (inv.status === "Accepted" &&
+        String(inv.discipline_id) === String(req.target_discipline_id) &&
+        String(inv.email).toLowerCase().trim() === String(activeUserEmail)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function escapeHtmlReq(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function initDrawingRequests() {
+  console.log("DR: initDrawingRequests called; reqDiscipline=" + (!!reqDiscipline) + " currentActiveProjectId=" + currentActiveProjectId);
+  if (reqStatus) { reqStatus.textContent = "Loading requests…"; reqStatus.style.color = "#64748b"; }
+  if (!reqDiscipline) return;
+  if (btnRaiseRequest && !btnRaiseRequest.dataset.bound) {
+    btnRaiseRequest.dataset.bound = "1";
+    btnRaiseRequest.addEventListener("click", raiseDrawingRequest);
+  }
+  if (!supabase || !currentActiveProjectId) {
+    if (reqStatus) { reqStatus.textContent = "Cannot load: project not active."; reqStatus.style.color = "#b91c1c"; }
+    renderDrawingRequests(); renderMyRequests(); return;
+  }
+  console.log("DR: invites=" + projectInvitationsList.length + " projectId=" + currentActiveProjectId);
+  if (reqStatus) { reqStatus.textContent = "Loading disciplines for project…"; reqStatus.style.color = "#64748b"; }
+
+  var resolved = false;
+  var qProj = supabase.from("project_disciplines").select("id, name").eq("project_id", currentActiveProjectId).order("name");
+  var timer = setTimeout(function() {
+    if (!resolved) {
+      console.error("DR: TIMEOUT — project_disciplines query did not resolve in 8s");
+      if (reqStatus) { reqStatus.textContent = "TIMEOUT: discipline query hung (check network/RLS in console)."; reqStatus.style.color = "#b91c1c"; }
+    }
+  }, 8000);
+
+  qProj.then(function(res) {
+    resolved = true; clearTimeout(timer);
+    if (res.error) console.error("DR: disc error:", res.error);
+    projectDisciplinesData = (res.data) || [];
+    console.log("DR: discByProj=" + projectDisciplinesData.length);
+    var shown = populateReqDiscipline();
+    if (typeof reqStatus !== "undefined" && reqStatus) {
+      if (!projectDisciplinesData.length) {
+        reqStatus.textContent = "No disciplines found for projectId=" + currentActiveProjectId;
+        reqStatus.style.color = "#b91c1c";
+      } else {
+        reqStatus.textContent = "";
+      }
+    }
+    renderDrawingRequests();
+    renderMyRequests();
+  }).catch(function(err) {
+    resolved = true; clearTimeout(timer);
+    console.error("DR: disciplines load threw:", err);
+    if (reqStatus) { reqStatus.textContent = "Discipline load error: " + (err && err.message ? err.message : err); reqStatus.style.color = "#b91c1c"; }
+  });
+
+  // Load requests/comments separately (non-blocking for the dropdown).
+  supabase.from("drawing_requests").select("*").eq("project_id", currentActiveProjectId).order("created_at", { ascending: false })
+    .then(function(r) { drawingRequestsData = (r.data) || []; renderDrawingRequests(); renderMyRequests(); })
+    .catch(function(e) { console.error("DR: requests load failed (table may be missing):", e); });
+  supabase.from("drawing_request_comments").select("*").eq("project_id", currentActiveProjectId).order("created_at", { ascending: true })
+    .then(function(c) { drawingRequestCommentsData = (c.data) || []; renderDrawingRequests(); renderMyRequests(); })
+    .catch(function(e) { console.error("DR: comments load failed (table may be missing):", e); });
+}
+
+function populateReqDiscipline() {
+  if (!reqDiscipline) return;
+  reqDiscipline.innerHTML = "";
+  var placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select discipline…";
+  reqDiscipline.appendChild(placeholder);
+  // Disciplines that have at least one CONNECTED (Accepted) member — or the project admin (owner).
+  var connectedDiscs = {};
+  for (var c = 0; c < projectInvitationsList.length; c++) {
+    var cinv = projectInvitationsList[c];
+    if (cinv.status === "Accepted" && cinv.discipline_id) connectedDiscs[String(cinv.discipline_id)] = true;
+  }
+  if (currentProjectData && currentProjectData.user_id) {
+    for (var od = 0; od < projectDisciplinesData.length; od++) {
+      if (/owner/i.test(projectDisciplinesData[od].name)) connectedDiscs[String(projectDisciplinesData[od].id)] = true;
+    }
+  }
+
+  // Disciplines the current user belongs to — cannot raise a request to yourself
+  var selfDiscs = {};
+  for (var s = 0; s < projectInvitationsList.length; s++) {
+    var sinv = projectInvitationsList[s];
+    if (sinv.status === "Accepted" && String(sinv.email).toLowerCase() === String(activeUserEmail).toLowerCase()) {
+      if (sinv.discipline_id) selfDiscs[String(sinv.discipline_id)] = true;
+    }
+  }
+  // If user is the project owner, also exclude the Owner discipline
+  if (currentProjectData && String(currentProjectData.user_id) === String(activeUserId)) {
+    for (var od2 = 0; od2 < projectDisciplinesData.length; od2++) {
+      if (/owner/i.test(projectDisciplinesData[od2].name)) selfDiscs[String(projectDisciplinesData[od2].id)] = true;
+    }
+  }
+  var shown = 0;
+  for (var i = 0; i < projectDisciplinesData.length; i++) {
+    var d = projectDisciplinesData[i];
+    if (!connectedDiscs[String(d.id)]) continue; // only disciplines with connected members
+    if (selfDiscs[String(d.id)]) continue;       // never to yourself
+    var opt = document.createElement("option");
+    opt.value = d.id;
+    opt.textContent = d.name;
+    reqDiscipline.appendChild(opt);
+    shown++;
+  }
+  return shown;
+}
+
+function getDisciplineMemberUserIds(disciplineId) {
+  var ids = [];
+  var seen = {};
+  for (var i = 0; i < projectInvitationsList.length; i++) {
+    var inv = projectInvitationsList[i];
+    if (inv.status === "Accepted" && String(inv.discipline_id) === String(disciplineId)) {
+      var uid = emailToIdMap[String(inv.email).toLowerCase().trim()];
+      if (uid && !seen[uid]) { seen[uid] = true; ids.push(uid); }
+    }
+  }
+  return ids;
+}
+
+function requesterUserId(req) {
+  return emailToIdMap[String(req.raised_by_email).toLowerCase().trim()] || null;
+}
+
+function disciplineNameForEmail(email) {
+  if (!email) return "—";
+  var e = String(email).toLowerCase().trim();
+  for (var i = 0; i < projectInvitationsList.length; i++) {
+    var inv = projectInvitationsList[i];
+    if (inv.status === "Accepted" && String(inv.email).toLowerCase() === e) {
+      var discId = inv.discipline_id;
+      for (var j = 0; j < projectDisciplinesData.length; j++) {
+        if (String(projectDisciplinesData[j].id) === String(discId)) return projectDisciplinesData[j].name;
+      }
+      return "Member";
+    }
+  }
+  if (currentProjectData && emailToIdMap[e] && String(emailToIdMap[e]) === String(currentProjectData.user_id)) return "Owner";
+  return e;
+}
+
+function notifyRequestParties(req, type, title, body, excludeActor) {
+  var ids = {};
+  var add = function(id) { if (id) ids[String(id)] = true; };
+  var tIds = getDisciplineMemberUserIds(req.target_discipline_id);
+  for (var i = 0; i < tIds.length; i++) add(tIds[i]);
+  add(requesterUserId(req));
+  add(currentProjectData ? currentProjectData.user_id : null);
+  var list = [];
+  var ex = excludeActor ? String(excludeActor) : "";
+  for (var k in ids) { if (k !== ex) list.push(k); }
+  return createNotifications(list, { project_id: currentActiveProjectId, type: type, title: title, body: body });
+}
+
+function raiseDrawingRequest() {
+  if (!supabase || !currentActiveProjectId) return;
+  var dId = reqDiscipline.value;
+  var dName = reqDiscipline.options[reqDiscipline.selectedIndex] ? reqDiscipline.options[reqDiscipline.selectedIndex].text : "";
+  var title = reqTitle.value.trim();
+  var desc = reqDescription.value.trim();
+  var level = reqLevel.value.trim();
+  if (!dId) { reqStatus.textContent = "Select a target discipline."; reqStatus.style.color = "#b91c1c"; return; }
+  if (!title) { reqStatus.textContent = "Enter a request title."; reqStatus.style.color = "#b91c1c"; return; }
+
+  btnRaiseRequest.disabled = true;
+  reqStatus.style.color = "#64748b";
+  reqStatus.textContent = "Raising…";
+
+  supabase.from("drawing_requests").insert([{
+    project_id: currentActiveProjectId,
+    raised_by: currentUserId,
+    raised_by_email: activeUserEmail,
+    target_discipline_id: dId,
+    target_discipline_name: dName,
+    title: title,
+    description: desc,
+    level_ref: level,
+    status: "Open"
+  }])
+  .then(function(r) {
+    if (r.error) throw r.error;
+    reqTitle.value = "";
+    reqDescription.value = "";
+    reqLevel.value = "";
+    reqStatus.textContent = "Request raised.";
+    notifyRequestParties({ target_discipline_id: dId, raised_by_email: activeUserEmail }, "drawing_request", "New drawing request", disciplineNameForEmail(activeUserEmail) + " requested: " + title + (dName ? " (to " + dName + ")" : ""), currentUserId);
+    return supabase.from("drawing_requests").select("*").eq("project_id", currentActiveProjectId).order("created_at", { ascending: false });
+  })
+  .then(function(r2) {
+      drawingRequestsData = (r2.data) || [];
+      renderDrawingRequests();
+      renderMyRequests();
+    })
+    .catch(function(err) {
+      reqStatus.textContent = "Failed: " + (err.message || err);
+      reqStatus.style.color = "#b91c1c";
+    })
+    .finally(function() { btnRaiseRequest.disabled = false; });
+}
+
+function closeRequest(id) {
+  if (!supabase || !currentActiveProjectId) return;
+  var reqObj = null;
+  for (var ci = 0; ci < drawingRequestsData.length; ci++) {
+    if (String(drawingRequestsData[ci].id) === String(id)) { reqObj = drawingRequestsData[ci]; break; }
+  }
+  supabase.from("drawing_requests").update({ status: "Closed", updated_at: new Date().toISOString() }).eq("id", id)
+    .then(function(r) {
+      if (r.error) throw r.error;
+      return supabase.from("drawing_requests").select("*").eq("project_id", currentActiveProjectId).order("created_at", { ascending: false });
+    })
+    .then(function(r2) {
+      drawingRequestsData = (r2.data) || [];
+      if (reqObj) notifyRequestParties(reqObj, "drawing_request", "Drawing request closed", disciplineNameForEmail(activeUserEmail) + " closed: " + reqObj.title, currentUserId);
+      renderDrawingRequests();
+      renderMyRequests();
+    })
+    .catch(function(err) {
+      alert("Failed to close request: " + (err.message || err));
+    });
+}
+
+function addCommentToRequest(reqId, boxEl) {
+  if (!supabase || !currentActiveProjectId) return;
+  var text = boxEl.value.trim();
+  if (!text) return;
+  var reqObj = null;
+  for (var ri = 0; ri < drawingRequestsData.length; ri++) {
+    if (String(drawingRequestsData[ri].id) === String(reqId)) { reqObj = drawingRequestsData[ri]; break; }
+  }
+  supabase.from("drawing_request_comments").insert([{
+    request_id: reqId,
+    project_id: currentActiveProjectId,
+    author_email: activeUserEmail,
+    comment: text
+  }])
+  .then(function(r) {
+    if (r.error) throw r.error;
+    boxEl.value = "";
+    if (reqObj) {
+      if (isTargetDisciplineMember(reqObj)) {
+        var rUid = requesterUserId(reqObj);
+        if (rUid && rUid !== currentUserId) createNotifications([rUid], { project_id: currentActiveProjectId, type: "drawing_request", title: "Reply on your request", body: disciplineNameForEmail(activeUserEmail) + " replied to your request: " + reqObj.title });
+      } else {
+        var tIds = getDisciplineMemberUserIds(reqObj.target_discipline_id).filter(function(id) { return id !== currentUserId; });
+        if (tIds.length) createNotifications(tIds, { project_id: currentActiveProjectId, type: "drawing_request", title: "New comment on request", body: disciplineNameForEmail(activeUserEmail) + " commented on: " + reqObj.title });
+      }
+    }
+    return supabase.from("drawing_request_comments").select("*").eq("project_id", currentActiveProjectId).order("created_at", { ascending: true });
+  })
+  .then(function(r2) {
+    drawingRequestCommentsData = (r2.data) || [];
+    renderDrawingRequests();
+  })
+  .catch(function(err) {
+    alert("Failed to add comment: " + (err.message || err));
+  });
+}
+
+function renderDrawingRequests() {
+  if (!openRequestsList || !closedRequestsList) return;
+  openRequestsList.innerHTML = "";
+  closedRequestsList.innerHTML = "";
+
+  var openReqs = [];
+  var closedReqs = [];
+  for (var i = 0; i < drawingRequestsData.length; i++) {
+    var req = drawingRequestsData[i];
+    if (req.status === "Closed") closedReqs.push(req);
+    else openReqs.push(req);
+  }
+
+  if (!openReqs.length) {
+    var e1 = document.createElement("div");
+    e1.className = "panel";
+    e1.style.cssText = "padding:18px; color:var(--muted); font-size:14px;";
+    e1.textContent = "No open requests. Use the form above to raise one.";
+    openRequestsList.appendChild(e1);
+  }
+  for (var a = 0; a < openReqs.length; a++) openRequestsList.appendChild(buildRequestCard(openReqs[a], true, true));
+
+  if (!closedReqs.length) {
+    var e2 = document.createElement("div");
+    e2.className = "panel";
+    e2.style.cssText = "padding:18px; color:var(--muted); font-size:14px;";
+    e2.textContent = "No closed requests yet.";
+    closedRequestsList.appendChild(e2);
+  }
+  for (var b = 0; b < closedReqs.length; b++) closedRequestsList.appendChild(buildRequestCard(closedReqs[b], false, true));
+}
+
+function renderMyRequests() {
+  if (!myOpenRequestsList || !myClosedRequestsList) return;
+  myOpenRequestsList.innerHTML = "";
+  myClosedRequestsList.innerHTML = "";
+
+  var openReqs = [];
+  var closedReqs = [];
+  for (var i = 0; i < drawingRequestsData.length; i++) {
+    var req = drawingRequestsData[i];
+    if (!isTargetDisciplineMember(req)) continue;
+    if (req.status === "Closed") closedReqs.push(req);
+    else openReqs.push(req);
+  }
+
+  if (myOpenTitle) {
+    myOpenTitle.textContent = "Open Requests To Me (" + openReqs.length + ")";
+  }
+
+  if (!openReqs.length) {
+    var e1 = document.createElement("div");
+    e1.className = "panel";
+    e1.style.cssText = "padding:18px; color:var(--muted); font-size:14px;";
+    e1.textContent = "No open requests raised to you.";
+    myOpenRequestsList.appendChild(e1);
+  }
+  for (var a = 0; a < openReqs.length; a++) myOpenRequestsList.appendChild(buildRequestCard(openReqs[a], true, false));
+
+  if (!closedReqs.length) {
+    var e2 = document.createElement("div");
+    e2.className = "panel";
+    e2.style.cssText = "padding:18px; color:var(--muted); font-size:14px;";
+    e2.textContent = "No resolved requests yet.";
+    myClosedRequestsList.appendChild(e2);
+  }
+  for (var b = 0; b < closedReqs.length; b++) myClosedRequestsList.appendChild(buildRequestCard(closedReqs[b], false, true));
+}
+
+function buildRequestCard(req, isOpen, readOnly) {
+  var canClose = isPlatformOwnerJS() || isProjectCreatorAdmin || isTargetDisciplineMember(req);
+
+  var card = document.createElement("div");
+  card.className = "panel";
+  card.style.cssText = "padding:16px;";
+
+  var head = document.createElement("div");
+  head.style.cssText = "display:flex; justify-content:space-between; align-items:flex-start; gap:12px;";
+  var left = document.createElement("div");
+  var titleEl = document.createElement("div");
+  titleEl.style.cssText = "font-weight:700; font-size:15px; color:var(--ink);";
+  titleEl.textContent = (req.level_ref ? req.level_ref + " — " : "") + req.title;
+  var meta = document.createElement("div");
+  meta.style.cssText = "font-size:12px; color:var(--muted); margin-top:4px;";
+  var metaText = "To: " + (req.target_discipline_name || "—");
+  metaText += "  •  Raised by: " + disciplineNameForEmail(req.raised_by_email);
+  metaText += "  •  " + new Date(req.created_at).toLocaleString();
+  meta.textContent = metaText;
+  left.appendChild(titleEl);
+  left.appendChild(meta);
+
+  var badge = document.createElement("span");
+  badge.style.cssText = "flex:0 0 auto; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; color:#fff; background:" + (req.status === "Closed" ? "#64748b" : "#2563eb") + ";";
+  badge.textContent = req.status;
+  head.appendChild(left);
+  head.appendChild(badge);
+  card.appendChild(head);
+
+  if (req.description) {
+    var descEl = document.createElement("div");
+    descEl.style.cssText = "font-size:13px; color:#334155; margin-top:10px; white-space:pre-wrap;";
+    descEl.textContent = req.description;
+    card.appendChild(descEl);
+  }
+
+  // comments for this request
+  var comments = [];
+  for (var c = 0; c < drawingRequestCommentsData.length; c++) {
+    if (String(drawingRequestCommentsData[c].request_id) === String(req.id)) comments.push(drawingRequestCommentsData[c]);
+  }
+  if (comments.length) {
+    var cWrap = document.createElement("div");
+    cWrap.style.cssText = "margin-top:12px; border-top:1px dashed #e2e8f0; padding-top:10px; display:flex; flex-direction:column; gap:6px;";
+    for (var ci = 0; ci < comments.length; ci++) {
+      var cm = comments[ci];
+      var crow = document.createElement("div");
+      crow.style.cssText = "font-size:12.5px; color:#334155; background:#f8fafc; border:1px solid #eef1ef; border-radius:6px; padding:8px 10px;";
+      var who = document.createElement("div");
+      who.style.cssText = "font-weight:700; color:#0f172a; font-size:11.5px; margin-bottom:2px;";
+      who.textContent = disciplineNameForEmail(cm.author_email) + "  ·  " + new Date(cm.created_at).toLocaleString();
+      var body = document.createElement("div");
+      body.style.cssText = "white-space:pre-wrap;";
+      body.textContent = cm.comment;
+      crow.appendChild(who);
+      crow.appendChild(body);
+      cWrap.appendChild(crow);
+    }
+    card.appendChild(cWrap);
+  }
+
+  if (!readOnly && isOpen) {
+    if (canClose) {
+      var closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.textContent = "Close Request";
+      closeBtn.style.cssText = "min-height:34px; padding:0 14px; border:0; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer; background:#475569; color:#fff; margin-top:14px;";
+      closeBtn.addEventListener("click", function() { closeRequest(req.id); });
+      card.appendChild(closeBtn);
+    }
+    var cbox = document.createElement("div");
+    cbox.style.cssText = "margin-top:12px; display:flex; gap:8px; align-items:flex-end;";
+    var ta = document.createElement("textarea");
+    ta.rows = 2;
+    ta.placeholder = "Reply (e.g. The drawing will be released by tomorrow evening)…";
+    ta.style.cssText = "flex:1; border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:#fbfcfb; color:var(--ink); resize:vertical; font-size:13px;";
+    var cbtn = document.createElement("button");
+    cbtn.type = "button";
+    cbtn.textContent = "Reply";
+    cbtn.style.cssText = "min-height:34px; padding:0 14px; border:0; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer; background:var(--blue); color:#fff;";
+    cbtn.addEventListener("click", function() { addCommentToRequest(req.id, ta); });
+    cbox.appendChild(ta);
+    cbox.appendChild(cbtn);
+    card.appendChild(cbox);
+  }
+
+  return card;
+}
+
+
 // 📥 FETCH AND RENDER DRAWINGS SUB-FEED DIRECTORIES + LIVE TIMELINE AUDIT
 // =========================================================================
 function renderAllFolderDrawingFeeds(projectId) {

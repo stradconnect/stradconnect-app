@@ -222,6 +222,12 @@
           <button type="button" id="btnTabActivity" style="padding: 10px 4px; border: 0; background: transparent; font-weight: 600; font-size: 14px; color: #a0aec0; border-bottom: 3px solid transparent; cursor: pointer;">
             📋 Activity Logs
           </button>
+          <button type="button" id="btnTabRequests" style="padding: 10px 4px; border: 0; background: transparent; font-weight: 600; font-size: 14px; color: #a0aec0; border-bottom: 3px solid transparent; cursor: pointer;">
+            📝 Raise Requests
+          </button>
+          <button type="button" id="btnMyRequests" style="padding: 10px 4px; border: 0; background: transparent; font-weight: 600; font-size: 14px; color: #a0aec0; border-bottom: 3px solid transparent; cursor: pointer;">
+            📨 My Requests
+          </button>
           <button type="button" id="btnTabExport" style="padding: 10px 4px; border: 0; background: transparent; font-weight: 600; font-size: 14px; color: #a0aec0; border-bottom: 3px solid transparent; cursor: pointer;">
             📦 Export / Backup
           </button>
@@ -289,6 +295,78 @@
               </button>
               <div id="exportStatus" style="font-size: 13px; color: #64748b; margin-top: 8px;"></div>
             </div>
+          </div>
+        </div>
+
+        <div id="tabContentRequests" style="display: none;">
+          <div class="panel" style="margin-bottom: 24px;">
+            <div class="section-title">
+              <h2>Raise a Request</h2>
+              <span>Request a drawing or revision from a specific discipline. Visible to all project members.</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+              <label style="display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:13px;">
+                <span>Target Discipline</span>
+                <select id="reqDiscipline" class="edit-modal-input" style="width:100%; min-height:42px; border:1px solid var(--line); border-radius:8px; padding:0 11px; background:#fbfcfb; color:var(--ink);"></select>
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:13px;">
+                <span>Level / Reference <span style="color:#94a3b8;">(optional)</span></span>
+                <input id="reqLevel" class="edit-modal-input" style="width:100%; min-height:42px; border:1px solid var(--line); border-radius:8px; padding:0 11px; background:#fbfcfb; color:var(--ink);" placeholder="e.g. First Floor Slab" />
+              </label>
+            </div>
+            <label style="display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:13px; margin-top:12px;">
+              <span>Request Title</span>
+              <input id="reqTitle" class="edit-modal-input" style="width:100%; min-height:42px; border:1px solid var(--line); border-radius:8px; padding:0 11px; background:#fbfcfb; color:var(--ink);" placeholder="e.g. Structural drawing for 1st floor slab" />
+            </label>
+            <label style="display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:13px; margin-top:12px;">
+              <span>Description <span style="color:#94a3b8;">(optional)</span></span>
+              <textarea id="reqDescription" class="edit-modal-input" rows="3" style="width:100%; border:1px solid var(--line); border-radius:8px; padding:11px; background:#fbfcfb; color:var(--ink); resize:vertical;" placeholder="Describe what is needed..."></textarea>
+            </label>
+            <div style="display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap;">
+              <button type="button" id="btnRaiseRequest" style="min-height:42px; padding:0 24px; background:var(--green); color:#fff; border:0; border-radius:6px; font-weight:700; cursor:pointer;">Raise Request</button>
+            </div>
+            <div id="reqStatus" style="font-size:13px; color:#64748b; margin-top:8px;"></div>
+          </div>
+
+          <div id="openRequestsWrap" style="margin-bottom: 24px;">
+            <div class="section-title" style="padding: 0 0 10px 0; margin-bottom: 12px;">
+              <h2 id="openRequestsTitle">Open Requests</h2>
+              <span id="openRequestsSub">Requests that still need a drawing or revision.</span>
+            </div>
+            <div id="openRequestsList" style="display:flex; flex-direction:column; gap:12px;"></div>
+          </div>
+
+          <div id="closedRequestsWrap">
+            <div class="section-title" style="padding: 0 0 10px 0; margin-bottom: 12px;">
+              <h2>Closed Requests</h2>
+              <span>Requests that have been fulfilled and closed.</span>
+            </div>
+            <div id="closedRequestsList" style="display:flex; flex-direction:column; gap:12px;"></div>
+          </div>
+        </div>
+
+        <div id="tabContentMyRequests" style="display: none;">
+          <div class="panel" style="margin-bottom: 24px;">
+            <div class="section-title">
+              <h2>Requests Raised To Me</h2>
+              <span>Drawing / update requests where you are the targeted discipline. Reply with status and close once fulfilled.</span>
+            </div>
+          </div>
+
+          <div id="myOpenRequestsWrap" style="margin-bottom: 24px;">
+            <div class="section-title" style="padding: 0 0 10px 0; margin-bottom: 12px;">
+              <h2 id="myOpenTitle">Open Requests To Me</h2>
+              <span id="myOpenSub">Requests you need to action.</span>
+            </div>
+            <div id="myOpenRequestsList" style="display:flex; flex-direction:column; gap:12px;"></div>
+          </div>
+
+          <div id="myClosedRequestsWrap">
+            <div class="section-title" style="padding: 0 0 10px 0; margin-bottom: 12px;">
+              <h2>Resolved Requests To Me</h2>
+              <span>Requests you have closed.</span>
+            </div>
+            <div id="myClosedRequestsList" style="display:flex; flex-direction:column; gap:12px;"></div>
           </div>
         </div>
       </section>

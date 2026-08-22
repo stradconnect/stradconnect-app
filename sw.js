@@ -1,4 +1,4 @@
-var CACHE = "stradconnect-v3";
+var CACHE = "stradconnect-v4";
 
 var CORE_ASSETS = [
   "./",
