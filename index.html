@@ -7,6 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=ARIAL&display=swap" rel="stylesheet">
@@ -248,7 +251,7 @@
 
           </div>
           <div class="actions">
-            <a class="btn btn-green" href="auth.html?mode=signup" data-session-btn>Deploy your first project <span aria-hidden="true">↗</span></a>
+            <button type="button" class="btn btn-green" id="installBtn" onclick="installApp()">Download Now <span aria-hidden="true">↓</span></button>
             <a class="btn btn-outline" href="auth.html?mode=login" data-session-btn>Access workspace</a>
           </div>
           <div class="hero-note"><span>◈</span> A controlled source of truth for every project discipline.</div>
@@ -417,6 +420,42 @@
     </footer>
 
   </div>
+
+  <script>
+    // PWA installation
+    let deferredPrompt = null;
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredPrompt = event;
+
+      const installBtn = document.getElementById("installBtn");
+      if (installBtn) installBtn.style.display = "inline-flex";
+    });
+
+    async function installApp() {
+      if (!deferredPrompt) {
+        alert("STRAD CONNECT is not currently available for installation in this browser. Please open the site in Chrome or Edge over HTTPS and try again.");
+        return;
+      }
+
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+
+      deferredPrompt = null;
+
+      const installBtn = document.getElementById("installBtn");
+      if (installBtn) installBtn.style.display = "inline-flex";
+
+      console.log("PWA install result:", outcome);
+    }
+
+    window.addEventListener("appinstalled", () => {
+      deferredPrompt = null;
+      const installBtn = document.getElementById("installBtn");
+      if (installBtn) installBtn.style.display = "none";
+    });
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
